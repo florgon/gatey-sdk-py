@@ -1,6 +1,8 @@
 import requests
 import time
 import typing
+from types import TracebackType
+
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
@@ -106,10 +108,16 @@ class Client:
         """
         Returns dict with parameters for request, from exception.
         """
+        traceback = exception.__traceback__
+        trace = self._get_trace_from_traceback(traceback)
+        trace_locals = traceback.tb_frame.f_locals
+        trace_globals = traceback.tb_frame.f_globals,
         return {
-            "type": str(type(exception)),
-            "call": repr(exception),
+            "type": type(exception).__name__,
             "message": str(exception),
+            "traceback": trace,
+            "locals": trace_locals,
+            "globals": trace_globals,
         }
 
     def api_version_is_current(self) -> bool:
@@ -118,6 +126,19 @@ class Client:
         """
         version = self.method("").get("v")
         return version != self._api_expected_version
+
+    def _get_trace_from_traceback(self, traceback: TracebackType) -> list[typing.Dict]:
+        trace = []
+        while traceback is not None:
+            trace.append(
+                {
+                    "filename": traceback.tb_frame.f_code.co_filename,
+                    "name": traceback.tb_frame.f_code.co_name,
+                    "line": traceback.tb_lineno,
+                }
+            )
+            traceback = traceback.tb_next
+        return trace
 
     def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
         """
