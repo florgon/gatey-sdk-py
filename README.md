@@ -1,9 +1,6 @@
 # Florgon Gatey SDK for Python (Official).
 
-This is the official Python SDK for [Florgon Gatey](https://gatey.florgon.space)
-Gatey Python SDK for API. Works with Florgon hosted, or self-hosted server.
-
----
+## This is the official Python SDK for [Florgon Gatey](https://gatey.florgon.space)
 
 ## Getting Started
 
@@ -47,7 +44,7 @@ For now there is no native integrations.
 
 ## Documentation.
 
-[ReadTheDocs](https://gatey-sdk-py.readthedocs.io/)
+[ReadTheDocs](https://gatey-sdk-py.readthedocs.io/) \
 [Gatey Documentation](https://florgon.space/dev/gatey)
 
 ## License
