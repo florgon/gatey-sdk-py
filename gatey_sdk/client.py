@@ -84,6 +84,8 @@ class Client:
         Updates API server provider URL.
         Used for self-hosted servers.
         """
+        if provider_url.endswith("/"):
+            raise ValueError("API provider URL must not end with trailing slash! (/)")
         self._api_server_provider_url = provider_url
 
     def change_api_version(self, version: str) -> None:
