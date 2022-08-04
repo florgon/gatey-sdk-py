@@ -102,6 +102,16 @@ class Client:
         server_time = self.methods.utils_get_server_time()
         return server_time - client_time
 
+    def resolve_exception_to_params(self, exception: BaseException) -> typing.Dict:
+        """
+        Returns dict with parameters for request, from exception.
+        """
+        return {
+            "type": str(type(exception)),
+            "call": repr(exception),
+            "message": str(exception),
+        }
+
     def api_version_is_current(self) -> bool:
         """
         Returns True, if API version of the server is same with current client API version.
@@ -158,7 +168,10 @@ class Methods:
         return response.raw_json().get("success").get("server_time")
 
     def capture_exception(self, exception: BaseException):
-        response = self.client.method("capture.Exception", exception=exception)
+        response = self.client.method(
+            "capture.Exception",
+            **self.client.resolve_exception_to_params(exception=exception),
+        )
         return response.raw_json().get("success")
 
     def capture_message(self, message: str):
