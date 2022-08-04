@@ -1,9 +1,92 @@
+"""
+    Response class.
+    Result of all API methods.
+    Implements Gatey API response structure (For success).
+    
+    If API request will raise error, there will be `gatey_sdk.exceptions.GateyApiError`
+"""
+
+from typing import Dict, Any
+from requests import Response
+
 
 class Response:
-    _raw_json = {}
-    def __init__(self, response):
-        self.response = response
-        self._raw_json = response.json()
-    
-    def raw_json(self):
+    """
+    Gatey API response structure.
+    """
+
+    # Raw response fields.
+    _raw_json: Dict | None = None
+    _raw_response: Response | None = None
+
+    # API response fields.
+    _response_version: str | None = None
+    _response_object: Dict | None = None  # `success` response field.
+
+    def __init__(self, response: Response):
+        """
+        :param response: Response object.
+        """
+
+        # Store raw response to work later.
+        self._raw_response = response
+
+        # Parse raw response once for working later.
+        self._raw_json = self._raw_response.json()
+        self._response_object = self._raw_json.get("success", None)
+        self._response_version = self._raw_json.get("v", None)
+
+    def get(self, key: str, default: Any = None):
+        """
+        Allows to access Response fields by `response.get(field, default)`.
+        """
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __getitem__(self, key: str) -> Any:
+        """
+        Allows to access Response fields by `response[field]`.
+        Notice that this will fall with `KeyError` if field was not found in the response.
+        """
+        if key not in self._response_object:
+            raise KeyError(f"{key} does not exist in the response!")
+        field_value = self._response_object.get(key, None)
+        return field_value
+
+    def __getattr__(self, attribute_name: str) -> Any:
+        """
+        Allows to access Response fields by `response.my_response_var`.
+        Notice that this will fall with `AttributeError` if field was not found in the response.
+        """
+        if attribute_name not in self._response_object:
+            raise AttributeError(f"{attribute_name} does not exist in the response!")
+        attribute_value = self._response_object.get(attribute_name, None)
+        return attribute_value
+
+    def get_version(self) -> str:
+        """
+        Returns response API version.
+        """
+        return self._response_version
+
+    def get_response_object(self) -> Dict:
+        """
+        Returns response object.
+        """
+        return self._response_object
+
+    def raw_json(self) -> Dict:
+        """
+        Returns raw JSON from the response.
+        WARNING: Do not use this method.
+        """
         return self._raw_json
+
+    def raw_response(self) -> Response:
+        """
+        Returns raw response object.
+        WARNING: Do not use this method.
+        """
+        return self._raw_response

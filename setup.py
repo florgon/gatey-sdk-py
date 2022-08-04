@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gatey-sdk",
-    version="0.0.1",
+    version="0.0.0",
     author="Florgon Team and Contributors",
     author_email="support@florgon.space",
     description="Python client for Gatey (https://gatey.florgon.space)",

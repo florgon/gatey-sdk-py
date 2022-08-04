@@ -1,3 +1,5 @@
+# NOT REFACTORED.
+
 import requests
 import time
 import typing
@@ -5,9 +7,11 @@ from types import TracebackType
 
 from urllib.parse import urlparse
 from urllib.parse import parse_qs
-from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
+from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION, SDK_NAME
 from gatey_sdk.response import Response
 from gatey_sdk.exceptions import GateyApiError
+from gatey_sdk.platform import Platform
+from gatey_sdk.__version__ import __version__ as SDK_VERSION
 
 
 class Client:
@@ -104,21 +108,45 @@ class Client:
         server_time = self.methods.utils_get_server_time()
         return server_time - client_time
 
-    def resolve_exception_to_params(self, exception: BaseException) -> typing.Dict:
+    def resolve_exception_to_params(
+        self, exception: BaseException, include_vars: bool = True
+    ) -> typing.Dict:
         """
         Returns dict with parameters for request, from exception.
         """
         traceback = exception.__traceback__
-        trace = self._get_trace_from_traceback(traceback)
-        trace_locals = traceback.tb_frame.f_locals
-        trace_globals = traceback.tb_frame.f_globals,
         return {
             "type": type(exception).__name__,
             "message": str(exception),
-            "traceback": trace,
+            "traceback": self._get_trace_from_traceback(traceback),
+            "vars": self._get_vars(traceback=traceback, include_vars=include_vars),
+            "sdk": self._get_sdk(),
+            "tags": self._get_tags(),
+            "platform": Platform.get_platform(),
+            "runtime": Platform.get_runtime(),
+        }
+
+    def _get_tags(self) -> typing.Dict:
+        tags = {}
+        tags.update(Platform.get_platform_dependant_tags())
+        return tags
+
+    def _get_vars(self, traceback: TracebackType, include_vars: bool) -> typing.Dict:
+        trace_locals, trace_globals = [], []
+        if include_vars:
+            trace_locals = traceback.tb_frame.f_locals
+            trace_globals = traceback.tb_frame.f_globals
+
+        return {
             "locals": trace_locals,
             "globals": trace_globals,
         }
+
+    def _get_sdk(self) -> typing.Dict:
+        sdk_name = SDK_NAME
+        sdk_version = SDK_VERSION
+
+        return {"name": sdk_name, "version": sdk_version}
 
     def api_version_is_current(self) -> bool:
         """
@@ -162,8 +190,12 @@ class Client:
         if error:
             error_message = error.get("message")
             error_code = error.get("code")
+            error_status = error.get("status")
             raise GateyApiError(
-                f"Failed to call method {method_name}! Error code: {error_code}. Error message: {error_message}"
+                message=f"Failed to call method {method_name}! Error code: {error_code}. Error message: {error_message}",
+                error_code=error_code,
+                error_message=error_message,
+                error_status=error_status,
             )
         return response
 
@@ -186,15 +218,15 @@ class Methods:
 
     def utils_get_server_time(self) -> int:
         response = self.client.method("utils.getServerTime")
-        return response.raw_json().get("success").get("server_time")
+        return response.get("server_time")
 
     def capture_exception(self, exception: BaseException):
         response = self.client.method(
             "capture.Exception",
             **self.client.resolve_exception_to_params(exception=exception),
         )
-        return response.raw_json().get("success")
+        return response.get_response_object()
 
     def capture_message(self, message: str):
         response = self.client.method("capture.Message", message=message)
-        return response.raw_json().get("success")
+        return response.get_response_object()

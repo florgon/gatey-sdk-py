@@ -7,7 +7,7 @@ client = gatey_sdk.Client()
 def f():
     print("before exc")
     raise ValueError
-    print("affter exc")
+    print("after exc")
 
 
 f()
