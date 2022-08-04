@@ -3,6 +3,7 @@ import gatey_sdk
 client = gatey_sdk.Client(access_token="my_token")
 client.change_api_provider("https://api.florgon.space/gatey")  # DEFAULT.
 
+
 print(client.methods.utils_get_server_time())
 
 t_diff = client.get_server_time_difference()
@@ -17,3 +18,13 @@ print(
         "https://florgon.space/oauth/blank?access_token=my_token"
     )
 )
+
+
+@client.catch(reraise=False, exception=BaseException, ignored_exceptions=[])
+def f():
+    print("before exc")
+    raise ValueError
+    print("affter exc")
+
+
+f()

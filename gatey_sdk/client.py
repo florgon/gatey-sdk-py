@@ -34,15 +34,41 @@ class Client:
         response = self._request_method(request_url=url, params=kwargs)
         return response
 
-    def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
-        """
-        Parse access token from OAuth redirect URI where user was redirected.
-        """
-        parsed_url = urlparse(url=redirect_uri)
-        access_token = parse_qs(parsed_url.query).get("access_token", None)
-        if access_token:
-            return access_token[0]
-        return ""
+    def capture_exception(self, exception: BaseException):
+        print(f"Got exception!")
+
+    def capture_message(self, message: str):
+        print(f"Got message!")
+
+    def catch(
+        self,
+        *,
+        reraise: bool = True,
+        exception: BaseException = None,
+        ignored_exceptions: list[BaseException] = None,
+    ):
+        if exception is None:
+            exception = BaseException
+        if ignored_exceptions is None:
+            ignored_exceptions = []
+
+        def decorator(function: typing.Callable):
+            def wrapper(*args, **kwargs):
+                callable_result = None
+                try:
+                    callable_result = function(*args, **kwargs)
+                except exception as e:
+                    for ignored_exception in ignored_exceptions:
+                        if type(e) == ignored_exception:
+                            return None
+                    self.capture_exception(exception=e)
+                    if reraise:
+                        raise e
+                return callable_result
+
+            return wrapper
+
+        return decorator
 
     def change_access_token(self, access_token: str):
         self.access_token = access_token
@@ -74,6 +100,16 @@ class Client:
         """
         version = self.method("").get("v")
         return version != self._api_expected_version
+
+    def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
+        """
+        Parse access token from OAuth redirect URI where user was redirected.
+        """
+        parsed_url = urlparse(url=redirect_uri)
+        access_token = parse_qs(parsed_url.query).get("access_token", None)
+        if access_token:
+            return access_token[0]
+        return ""
 
     def _request_method(self, request_url, params: typing.Dict[str, typing.Any]) -> str:
         """
