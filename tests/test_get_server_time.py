@@ -5,6 +5,7 @@ client.change_api_provider("https://api.florgon.space/gatey")  # DEFAULT.
 
 print(client.method("utils.getServerTime"))
 print(client.method("utils.getServerTime", my_var="get_param"))
+print(client.methods.utils_get_server_time())
 
 t_diff = client.get_server_time_difference()
 if t_diff > 10:

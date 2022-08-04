@@ -1,6 +1,7 @@
 import requests
 import time
-from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL
+import typing
+from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
 
 
 class Client:
@@ -10,15 +11,22 @@ class Client:
     """
 
     _api_server_provider_url = DEFAULT_API_PROVIDER_URL
+    _api_expected_version = DEFAULT_API_VERSION
+
+    methods = None
 
     def __init__(self, *args, **kwargs):
-        self._api_server_provider_url = DEFAULT_API_PROVIDER_URL
+        self.change_api_provider(kwargs.pop("api_provider", DEFAULT_API_PROVIDER_URL))
+        self.change_api_version(kwargs.pop("api_version", DEFAULT_API_VERSION))
+        self.methods = Methods(client=self)
 
-    def method(self, name: str, **kwargs) -> any:
-        url = f"{self._api_server_provider_url}/{name}"
-        params = kwargs
-        request = requests.get(url=url, params=params)
-        return request.json()
+    def method(self, name: str, **kwargs) -> typing.Any:
+        """
+        Executes API method with given name.
+        """
+        url = self._get_method_request_url(name)
+        response = self._request_method(request_url=url, params=kwargs)
+        return response
 
     def change_api_provider(self, provider_url: str) -> None:
         """
@@ -27,9 +35,53 @@ class Client:
         """
         self._api_server_provider_url = provider_url
 
+    def change_api_version(self, version: str) -> None:
+        """
+        Updates API version.
+        """
+        self._api_expected_version = version
+
     def get_server_time_difference(self) -> int:
+        """
+        Returns time difference between server and client.
+        """
         client_time = time.time()
         server_time = (
             self.method("utils.getServerTime").get("success").get("server_time")
         )
         return server_time - client_time
+
+    def api_version_is_current(self) -> None:
+        """
+        Returns True, if API version of the server is same with current client API version.
+        """
+        version = self.method("").get("v")
+        return version != self._api_expected_version
+
+    def _request_method(self, request_url, params: typing.Dict[str, typing.Any]) -> str:
+        """
+        Returns JSON response from server.
+        """
+        request = requests.get(url=request_url, params=params)
+        response_json = request.json()
+        return response_json
+
+    def _get_method_request_url(self, method_name: str):
+        """
+        Returns method request url.
+        """
+        return f"{self._api_server_provider_url}/{method_name}"
+
+
+class Methods:
+    """
+    Wrapper for API methods.
+    """
+
+    client = None
+
+    def __init__(self, client: Client):
+        self.client = client
+
+    def utils_get_server_time(self):
+        return self.client.method("utils.getServerTime")
