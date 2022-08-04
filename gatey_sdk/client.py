@@ -1,6 +1,8 @@
 import requests
 import time
 import typing
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
 from gatey_sdk.response import Response
 
@@ -14,11 +16,14 @@ class Client:
     _api_server_provider_url = DEFAULT_API_PROVIDER_URL
     _api_expected_version = DEFAULT_API_VERSION
 
+    access_token = None
+
     methods = None
 
     def __init__(self, *args, **kwargs):
         self.change_api_provider(kwargs.pop("api_provider", DEFAULT_API_PROVIDER_URL))
         self.change_api_version(kwargs.pop("api_version", DEFAULT_API_VERSION))
+        self.change_access_token(kwargs.pop("access_token", None))
         self.methods = Methods(client=self)
 
     def method(self, name: str, **kwargs) -> Response:
@@ -28,6 +33,19 @@ class Client:
         url = self._get_method_request_url(name)
         response = self._request_method(request_url=url, params=kwargs)
         return response
+
+    def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
+        """
+        Parse access token from OAuth redirect URI where user was redirected.
+        """
+        parsed_url = urlparse(url=redirect_uri)
+        access_token = parse_qs(parsed_url.query).get("access_token", None)
+        if access_token:
+            return access_token[0]
+        return ""
+
+    def change_access_token(self, access_token: str):
+        self.access_token = access_token
 
     def change_api_provider(self, provider_url: str) -> None:
         """
@@ -50,7 +68,7 @@ class Client:
         server_time = self.methods.utils_get_server_time()
         return server_time - client_time
 
-    def api_version_is_current(self) -> None:
+    def api_version_is_current(self) -> bool:
         """
         Returns True, if API version of the server is same with current client API version.
         """
