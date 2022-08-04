@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from urllib.parse import parse_qs
 from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
 from gatey_sdk.response import Response
+from gatey_sdk.exceptions import GateyApiError
 
 
 class Client:
@@ -31,22 +32,27 @@ class Client:
         Executes API method with given name.
         """
         url = self._get_method_request_url(name)
-        response = self._request_method(request_url=url, params=kwargs)
+        response = self._request_method(
+            request_url=url, params=kwargs, method_name=name
+        )
         return response
 
     def capture_exception(self, exception: BaseException):
-        print(f"Got exception!")
+        return self.methods.capture_exception(exception)
 
     def capture_message(self, message: str):
-        print(f"Got message!")
+        return self.methods.capture_message(message)
 
     def catch(
         self,
         *,
         reraise: bool = True,
-        exception: BaseException = None,
-        ignored_exceptions: list[BaseException] = None,
+        exception: BaseException | None = None,
+        ignored_exceptions: list[BaseException] | None = None,
     ):
+        """
+        Decorator that catches the exception and captures it as Gatey exception.
+        """
         if exception is None:
             exception = BaseException
         if ignored_exceptions is None:
@@ -76,7 +82,7 @@ class Client:
     def change_api_provider(self, provider_url: str) -> None:
         """
         Updates API server provider URL.
-        Used for selfhosted servers.
+        Used for self-hosted servers.
         """
         self._api_server_provider_url = provider_url
 
@@ -111,11 +117,21 @@ class Client:
             return access_token[0]
         return ""
 
-    def _request_method(self, request_url, params: typing.Dict[str, typing.Any]) -> str:
+    def _request_method(
+        self, request_url, params: typing.Dict[str, typing.Any], method_name: str
+    ) -> str:
         """
         Returns JSON response from server.
         """
+
         response = Response(response=requests.get(url=request_url, params=params))
+        error = response.raw_json().get("error", None)
+        if error:
+            error_message = error.get("message")
+            error_code = error.get("code")
+            raise GateyApiError(
+                f"Failed to call method {method_name}! Error code: {error_code}. Error message: {error_message}"
+            )
         return response
 
     def _get_method_request_url(self, method_name: str):
@@ -138,3 +154,11 @@ class Methods:
     def utils_get_server_time(self) -> int:
         response = self.client.method("utils.getServerTime")
         return response.raw_json().get("success").get("server_time")
+
+    def capture_exception(self, exception: BaseException):
+        response = self.client.method("capture.Exception", exception=exception)
+        return response.raw_json().get("success")
+
+    def capture_message(self, message: str):
+        response = self.client.method("capture.Message", message=message)
+        return response.raw_json().get("success")
