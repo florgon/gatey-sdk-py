@@ -3,7 +3,7 @@
 import typing
 import sys
 import platform
-
+import cpuinfo
 
 class Platform:
     @staticmethod
@@ -31,7 +31,7 @@ class Platform:
             "node": platform.node(),
             "version": platform.version(),
             "arch": platform.architecture()[0],
-            "processor": platform.processor(),
+            "processor": str(cpuinfo.cpu.info[0]['model name']),
             "machine": platform.machine(),
             "platform": platform.platform(terse=False),
         }
