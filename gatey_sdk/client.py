@@ -2,6 +2,7 @@ import requests
 import time
 import typing
 from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION
+from gatey_sdk.response import Response
 
 
 class Client:
@@ -20,7 +21,7 @@ class Client:
         self.change_api_version(kwargs.pop("api_version", DEFAULT_API_VERSION))
         self.methods = Methods(client=self)
 
-    def method(self, name: str, **kwargs) -> typing.Any:
+    def method(self, name: str, **kwargs) -> Response:
         """
         Executes API method with given name.
         """
@@ -46,9 +47,7 @@ class Client:
         Returns time difference between server and client.
         """
         client_time = time.time()
-        server_time = (
-            self.method("utils.getServerTime").get("success").get("server_time")
-        )
+        server_time = self.methods.utils_get_server_time()
         return server_time - client_time
 
     def api_version_is_current(self) -> None:
@@ -62,9 +61,8 @@ class Client:
         """
         Returns JSON response from server.
         """
-        request = requests.get(url=request_url, params=params)
-        response_json = request.json()
-        return response_json
+        response = Response(response=requests.get(url=request_url, params=params))
+        return response
 
     def _get_method_request_url(self, method_name: str):
         """
@@ -83,5 +81,6 @@ class Methods:
     def __init__(self, client: Client):
         self.client = client
 
-    def utils_get_server_time(self):
-        return self.client.method("utils.getServerTime")
+    def utils_get_server_time(self) -> int:
+        response = self.client.method("utils.getServerTime")
+        return response.raw_json().get("success").get("server_time")
