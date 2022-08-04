@@ -12,7 +12,7 @@
     Author: Florgon Solutions.
     Gatey website: https://gatey.florgon.space/
     Gatey API endpoint: https://api.florgon.space/gatey/
-    Gatey developer documentation: https://florgon.space/dev/gatey/
+    Gatey developer documentation: https://gatey-sdk-py.readthedocs.io/
 
     If you have any questions please reach out us at:
     - support@florgon.space
