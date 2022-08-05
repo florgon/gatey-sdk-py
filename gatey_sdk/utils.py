@@ -21,7 +21,7 @@ def wrap_in_exception_handler(
     *,
     reraise: bool = True,
     exception: BaseException | None = None,
-    ignored_exceptions: list[BaseException] | None = None,
+    ignored_exceptions: List[BaseException] | None = None,
     on_catch_exception: Optional[Callable] = None,
     skip_global_handler_on_ignore: bool = False,
 ) -> Callable:
@@ -109,7 +109,7 @@ def register_system_exception_hook(hook: Callable):
 
 
 def exception_is_ignored(
-    exception: BaseException, ignored_exceptions: list[BaseException]
+    exception: BaseException, ignored_exceptions: List[BaseException]
 ) -> bool:
     """
     Returns True if exception should be ignored based on `ignored_exceptions` list.
@@ -274,15 +274,11 @@ def get_variables_from_traceback(
         traceback_variables_globals = traceback.tb_frame.f_globals
 
     # Stringify variable values.
-    # Another solution is:
-    #  dict(map(lambda i: (i[0], str(i[1])), DICT.items()))
     traceback_variables_locals = {
-        key: str(traceback_variables_locals[key])
-        for key in traceback_variables_locals.keys()
+        key: str(value) for key, value in traceback_variables_locals.items()
     }
     traceback_variables_globals = {
-        key: str(traceback_variables_globals[key])
-        for key in traceback_variables_globals.keys()
+        key: str(value) for key, value in traceback_variables_globals.items()
     }
 
     return {

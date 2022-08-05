@@ -2,7 +2,7 @@
     Main client for Gatey SDK.
     Provides root interface for working with Gatey.
 """
-from typing import Callable, Union, Dict
+from typing import Callable, Union, Dict, List
 
 # Utils.
 from gatey_sdk.utils import (
@@ -86,7 +86,7 @@ class Client:
         *,
         reraise: bool = True,
         exception: BaseException | None = None,
-        ignored_exceptions: list[BaseException] | None = None,
+        ignored_exceptions: List[BaseException] | None = None,
         skip_global_handler_on_ignore: bool = False,
     ):
         """
