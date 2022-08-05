@@ -1,16 +1,15 @@
-# NOT REFACTORED.
-
+"""
+    Main client for Gatey SDK.
+    Provides root interface for working with Gatey.
+"""
 from typing import Callable, Union, Dict
 
-from gatey_sdk.platform import Platform
-
 # Utils.
-from gatey_sdk.consts import SDK_INFORMATION_DICT
 from gatey_sdk.utils import (
-    get_trace_from_traceback,
-    get_variables_from_traceback,
     wrap_in_exception_handler,
     register_system_exception_hook,
+    event_dict_from_exception,
+    get_additional_event_data,
 )
 
 # Components.
@@ -20,7 +19,21 @@ from gatey_sdk.transport import build_transport_instance, BaseTransport
 
 
 class Client:
-    """ """
+    """
+    ## Gatey SDK client.
+    Main interface for working with Gatey.
+    Provides transport, auth, api interfaces.
+
+    ### Example use:
+    ```python
+    import gatey_sdk
+    client = gatey_sdk.Client()
+    ```
+    """
+
+    # If true, will send locals(), globals() variables,
+    # alongside with event data.
+    capture_vars = True
 
     # Transport instance.
     # Used for sending instance.
@@ -44,6 +57,7 @@ class Client:
         *,
         transport: Union[BaseTransport, Callable] = None,
         handle_global_exceptions: bool = True,
+        capture_vars: bool = True,
     ):
         """
         :param transport: Transport type argument.
@@ -53,6 +67,9 @@ class Client:
         self.api = Api()
         self.auth = Auth()
         self.transport = build_transport_instance(transport_argument=transport)
+
+        # Options.
+        self.capture_vars = capture_vars
 
         # Default hook event for captured exceptions.
         self.on_catch_exception_hook = lambda exception: self.capture_exception(
@@ -87,40 +104,33 @@ class Client:
             on_catch_exception=self.on_catch_exception_hook,
         )
 
-    # Code below is not refactored.
-    # Code below is not refactored.
-    # Code below is not refactored.
-    # Code below is not refactored.
-    # Code below is not refactored.
+    def capture_event(self, event: Dict, level: str) -> None:
+        """
+        Captures raw event.
+        :param event: Raw event dictionary.
+        """
+        event_dict = event
+        event_dict.update({"level": level})
+        event_dict.update(get_additional_event_data())
+        self.transport.send_event(event_dict=event)
 
-    def capture_exception(self, exception: BaseException):
-        self.transport.on_event_send()
+    def capture_message(self, level: str, message: str) -> None:
+        """
+        Captures message event.
+        :param level: String of the level (INFO, DEBUG, etc)
+        :param message: Message string.
+        """
+        event_dict = {"message": message}
+        self.capture_event(event=event_dict, level=level)
 
-    def capture_message(self, message: str):
-        self.transport.on_event_send()
-
-    def resolve_exception_to_params(
-        self, exception: BaseException, include_vars: bool = True
-    ) -> Dict:
-        exc_traceback = exception.__traceback__
-        traceback_vars = (
-            get_variables_from_traceback(traceback=exc_traceback)
-            if include_vars
-            else {"locals": [], "globals": []}
+    def capture_exception(self, exception: BaseException, *, _level: str = "ERROR"):
+        """
+        Captures exception event.
+        :param exception: Raw exception.
+        :param _level: Level of the event that will be sent.
+        """
+        exception_dict = event_dict_from_exception(
+            exception=exception, skip_vars=not self.capture_vars
         )
-        traceback = get_trace_from_traceback(exc_traceback)
-        return {
-            "type": str(type(exception).__name__),
-            "message": str(exception),
-            "tags": self._get_tags(),
-            "platform": Platform.get_platform(),
-            "runtime": Platform.get_runtime(),
-            "sdk": SDK_INFORMATION_DICT,
-            "vars": traceback_vars,
-            "traceback": traceback,
-        }
-
-    def _get_tags(self) -> Dict:
-        tags = {}
-        tags.update(Platform.get_platform_dependant_tags())
-        return tags
+        event_dict = {"exception": exception_dict}
+        self.capture_event(event=event_dict, level=_level)

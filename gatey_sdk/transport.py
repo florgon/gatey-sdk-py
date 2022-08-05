@@ -2,7 +2,7 @@
     Transport classes, that handles sending events from Gatey.
 """
 
-from typing import Callable, Any, Union, Optional
+from typing import Callable, Any, Union, Optional, Dict
 from gatey_sdk.exceptions import GateyTransportError
 from gatey_sdk.api import Api
 
@@ -16,7 +16,7 @@ class BaseTransport:
     def __init__(self):
         pass
 
-    def on_event_send(self):
+    def send_event(self, event_dict: Dict):
         """
         Handles transport event callback (handle event sending).
         Should be inherited from BaseTransport and implemented in transports.
@@ -34,7 +34,7 @@ class HttpTransport(BaseTransport):
         BaseTransport.__init__(self)
         self._api = api if api else Api()
 
-    def on_event_send(self):
+    def send_event(self, event_dict: Dict):
         return self._api.method("event.Capture")
 
 
@@ -50,13 +50,13 @@ class FuncTransport(BaseTransport):
         BaseTransport.__init__(self)
         self._function = function
 
-    def on_event_send(self, event) -> None:
+    def send_event(self, event_dict: Dict) -> None:
         """
         Handles transport event callback (handle event sending).
         Function transport just takes event and passed it raw to function call.
         """
         try:
-            self._function(event)
+            self._function(event_dict)
         except Exception as transport_exception:
             raise GateyTransportError(
                 f"Unable to handle event send with Function transport (FuncTransport). Raised exception: {transport_exception}"
@@ -75,7 +75,9 @@ def build_transport_instance(
         # If nothing is passed, should be default http transport type.
         return HttpTransport()
 
-    if issubclass(transport_argument, BaseTransport):
+    if isinstance(transport_argument, type) and issubclass(
+        transport_argument, BaseTransport
+    ):
         # Passed subclass of BaseTransport as transport.
         # Should be instantiated as cls.
         transport_class = transport_argument

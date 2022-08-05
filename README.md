@@ -24,7 +24,7 @@ import gatey_sdk
 client = gatey_sdk.Client()
 
 # Will send message (capture).
-client.capture_message("Hello Python Gatey SDK!")
+client.capture_message("Hello Python Gatey SDK!", level="DEBUG")
 
 # Will capture exception.
 @client.catch

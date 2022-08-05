@@ -3,11 +3,18 @@
 """
 
 import sys
+import platform
+
 from typing import Dict, List, Callable, Optional
 from types import TracebackType
 
+from gatey_sdk.consts import SDK_INFORMATION_DICT
 from gatey_sdk.exceptions import GateyApiError, GateyTransportError
-from gatey_sdk.consts import EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK, EXC_ATTR_WAS_HANDLED
+from gatey_sdk.consts import (
+    EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK,
+    EXC_ATTR_WAS_HANDLED,
+    RUNTIME_NAME,
+)
 
 
 def wrap_in_exception_handler(
@@ -114,6 +121,55 @@ def exception_is_ignored(
     return False
 
 
+def event_dict_from_exception(exception: BaseException, skip_vars: bool = True) -> Dict:
+    """
+    Returns event dictionary of the event (field) from the raw exception.
+    Fetches all required information about system, exception.
+    """
+
+    # Get raw exception traceback information.
+    exception_traceback = getattr(exception, "__traceback__", None)
+
+    # Query traceback information.
+    traceback_vars = get_variables_from_traceback(
+        traceback=exception_traceback, _always_skip=skip_vars
+    )
+    traceback_trace = get_trace_from_traceback(exception_traceback)
+
+    # Get exception type ("BaseException", "ValueError").
+    exception_type = get_exception_type_name(exception)
+    exception_description = str(exception)
+    event_dict = {
+        "class": exception_type,
+        "description": exception_description,
+        "vars": traceback_vars,
+        "traceback": traceback_trace,
+    }
+    return event_dict
+
+
+def get_exception_type_name(exception: BaseException) -> str:
+    """
+    Returns exception type ("BaseException", "ValueError").
+    """
+    return getattr(type(exception), "__name__", "NoneException")
+
+
+def get_additional_event_data() -> Dict:
+    """
+    Returns additional event dictionary with event information such as SDK information, platform information etc.
+    """
+    sdk_information = SDK_INFORMATION_DICT
+    platform_information = get_platform_event_data()
+    runtime_information = get_runtime_event_data()
+    additional_event_data = {
+        "sdk": sdk_information,
+        "platform": platform_information,
+        "runtime": runtime_information,
+    }
+    return additional_event_data
+
+
 def remove_trailing_slash(url: str) -> str:
     """
     Removes trailing slash from a URL.
@@ -150,13 +206,84 @@ def get_trace_from_traceback(traceback: TracebackType) -> List[Dict]:
     return trace
 
 
-def get_variables_from_traceback(traceback: TracebackType) -> Dict:
+def get_platform_event_data() -> Dict:
+    """
+    Returns platform information for event data.
+    """
+    platform_os = platform.system()
+    platform_network_name = platform.node()
+    platform_event_data = {
+        "os": platform_os,
+        "node": platform_network_name,
+        "version": platform.version(),  # For major there is `platform.release()`
+        "arch": {
+            "bits": platform.architecture()[0],
+            "linkage": platform.architecture()[1],
+        },
+        "processor": platform.processor(),
+        "machine": platform.machine(),
+        "platform": platform.platform(terse=False),
+    }
+    if platform_os == "Windows":
+        # This is only for Windows.
+        # (but there is also more same specific stuff for other operating system).
+        # Also this is for now will not be handled by API.
+        platform_event_data.update(
+            {
+                "os.win32.ver": platform.win32_ver(),
+                "os.win32.edition": platform.win32_edition(),
+                "os.win32.is_iot": platform.win32_is_iot(),
+            }
+        )
+
+    return platform_event_data
+
+
+def get_runtime_event_data() -> Dict:
+    """
+    Returns runtime information for event data.
+    """
+    runtime_name = RUNTIME_NAME
+    runtime_version = sys.version_info
+    runtime_version = f"{runtime_version[0]}.{runtime_version[1]}.{runtime_version[2]}-{runtime_version[3]}-{runtime_version[4]}"
+    runtime_build = platform.python_build()
+    runtime_build = f"{runtime_build[0]}.{runtime_build[1]}"
+    return {
+        "name": runtime_name,
+        "version": runtime_version,
+        "build": runtime_build,
+        "compiler": platform.python_compiler(),
+        "branch": platform.python_branch(),
+        "implementation": platform.python_implementation(),
+        "revision": platform.python_revision(),
+    }
+
+
+def get_variables_from_traceback(
+    traceback: TracebackType, *, _always_skip: bool = False
+) -> Dict:
     """
     Returns local and global variables from the given traceback.
     """
 
-    traceback_variables_locals = traceback.tb_frame.f_locals
-    traceback_variables_globals = traceback.tb_frame.f_globals
+    traceback_variables_locals = {}
+    traceback_variables_globals = {}
+
+    if traceback and not _always_skip:
+        traceback_variables_locals = traceback.tb_frame.f_locals
+        traceback_variables_globals = traceback.tb_frame.f_globals
+
+    # Stringify variable values.
+    # Another solution is:
+    #  dict(map(lambda i: (i[0], str(i[1])), DICT.items()))
+    traceback_variables_locals = {
+        key: str(traceback_variables_locals[key])
+        for key in traceback_variables_locals.keys()
+    }
+    traceback_variables_globals = {
+        key: str(traceback_variables_globals[key])
+        for key in traceback_variables_globals.keys()
+    }
 
     return {
         "locals": traceback_variables_locals,
