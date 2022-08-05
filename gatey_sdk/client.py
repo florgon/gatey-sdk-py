@@ -10,6 +10,7 @@ from gatey_sdk.utils import (
     get_trace_from_traceback,
     get_variables_from_traceback,
     wrap_in_exception_handler,
+    register_system_exception_hook,
 )
 
 # Components.
@@ -34,7 +35,16 @@ class Client:
     # Used for sending API HTTP requests.
     api = None
 
-    def __init__(self, *, transport: Union[BaseTransport, Callable] = None):
+    # Function that will be called when any exception is excepted.
+    # Used in global exception handler and catch.
+    on_catch_exception_hook = None
+
+    def __init__(
+        self,
+        *,
+        transport: Union[BaseTransport, Callable] = None,
+        handle_global_exceptions: bool = True,
+    ):
         """
         :param transport: Transport type argument.
         """
@@ -44,26 +54,37 @@ class Client:
         self.auth = Auth()
         self.transport = build_transport_instance(transport_argument=transport)
 
+        # Default hook event for captured exceptions.
+        self.on_catch_exception_hook = lambda exception: self.capture_exception(
+            exception=exception
+        )
+
+        # Register system exception hook,
+        # to handle global exceptions.
+        if handle_global_exceptions is True:
+            register_system_exception_hook(hook=self.on_catch_exception_hook)
+
     def catch(
         self,
         *,
         reraise: bool = True,
         exception: BaseException | None = None,
         ignored_exceptions: list[BaseException] | None = None,
+        skip_global_handler_on_ignore: bool = False,
     ):
         """
         Decorator that catches the exception and captures it as Gatey exception.
         :param reraise: If False, will not raise the exception again, application will not fall (WARNING: USE THIS WISELY TO NOT GET UNEXPECTED BEHAVIOR)
         :param exception: Target exception type to capture.
         :param ignored_exceptions: List of exceptions that should not be captured.
+        :param skip_global_handler_on_ignore: If true, will skip global exception handler if exception was ignored.
         """
         return wrap_in_exception_handler(
             reraise=reraise,
             exception=exception,
             ignored_exceptions=ignored_exceptions,
-            on_catch_exception=lambda exception: self.capture_exception(
-                exception=exception
-            ),
+            skip_global_handler_on_ignore=skip_global_handler_on_ignore,
+            on_catch_exception=self.on_catch_exception_hook,
         )
 
     # Code below is not refactored.

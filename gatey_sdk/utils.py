@@ -1,8 +1,13 @@
 """
     Utils methods.
 """
+
+import sys
 from typing import Dict, List, Callable, Optional
 from types import TracebackType
+
+from gatey_sdk.exceptions import GateyApiError, GateyTransportError
+from gatey_sdk.consts import EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK, EXC_ATTR_WAS_HANDLED
 
 
 def wrap_in_exception_handler(
@@ -11,6 +16,7 @@ def wrap_in_exception_handler(
     exception: BaseException | None = None,
     ignored_exceptions: list[BaseException] | None = None,
     on_catch_exception: Optional[Callable] = None,
+    skip_global_handler_on_ignore: bool = False,
 ) -> Callable:
     """
     Decorator that catches the exception and captures it as Gatey exception.
@@ -18,6 +24,7 @@ def wrap_in_exception_handler(
     :param exception: Target exception type to capture.
     :param ignored_exceptions: List of exceptions that should not be captured.
     :param on_catch_exception: Function that will be called when an exception is caught.
+    :param skip_global_handler_on_ignore: If true, will skip global exception handler if exception was ignored.
     """
 
     # Default target exception value.
@@ -37,6 +44,13 @@ def wrap_in_exception_handler(
             except exception as e:
                 # There is any exception that we should handle occurred.
 
+                # Typed.
+                e: BaseException = e
+
+                if skip_global_handler_on_ignore:
+                    # If we should skip global exception handler.
+                    setattr(e, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK, True)
+
                 # Do not handle ignored exceptions.
                 if exception_is_ignored(e, ignored_exceptions):
                     raise e
@@ -45,6 +59,9 @@ def wrap_in_exception_handler(
                 if callable(on_catch_exception):
                     on_catch_exception(e)
 
+                # Mark as handled.
+                setattr(e, EXC_ATTR_WAS_HANDLED, True)
+
                 # Raise exception again if we expected that.
                 if reraise is True:
                     raise e
@@ -52,6 +69,36 @@ def wrap_in_exception_handler(
         return wrapper
 
     return decorator
+
+
+def register_system_exception_hook(hook: Callable):
+    """
+    Register exception hook for system.
+    :param hook: Will be called when exception triggered.
+    """
+
+    def _system_exception_hook_handler(
+        exception_type: type[BaseException],
+        exception: BaseException,
+        traceback: TracebackType,
+    ):
+        # System exception hook handler.
+
+        if not hasattr(exception, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK):
+            # If marked as skipped for system hook.
+            try:
+                # Try to handle this exception with hook.
+                hook(exception=exception)
+                return
+            except (GateyApiError, GateyTransportError):
+                # If there is any error while processing global exception handler.
+                pass
+
+        # Default system hook.
+        sys.__excepthook__(exception_type, exception, traceback)
+
+    # Register system exception hook.
+    sys.excepthook = _system_exception_hook_handler
 
 
 def exception_is_ignored(

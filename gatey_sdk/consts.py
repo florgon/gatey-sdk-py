@@ -16,3 +16,6 @@ API_DEFAULT_SERVER_EXPECTED_VERSION = "0.0.0"
 SDK_NAME = "gatey.python.sdk.official"
 SDK_VERSION = library_version
 SDK_INFORMATION_DICT = {"name": SDK_NAME, "version": SDK_VERSION}
+
+EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK = "gatey_should_skip_system_hook"
+EXC_ATTR_WAS_HANDLED = "gatey_was_handled"
