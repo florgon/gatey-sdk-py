@@ -1,53 +1,48 @@
 # NOT REFACTORED.
 
-import requests
-import time
-import typing
-from types import TracebackType
+from typing import Callable, Union, Dict
 
-from urllib.parse import urlparse
-from urllib.parse import parse_qs
-from gatey_sdk.consts import DEFAULT_API_PROVIDER_URL, DEFAULT_API_VERSION, SDK_NAME
-from gatey_sdk.response import Response
-from gatey_sdk.exceptions import GateyApiError
 from gatey_sdk.platform import Platform
-from gatey_sdk.__version__ import __version__ as SDK_VERSION
+
+# Utils.
+from gatey_sdk.consts import SDK_INFORMATION_DICT
+from gatey_sdk.utils import (
+    get_trace_from_traceback,
+    get_variables_from_traceback,
+    wrap_in_exception_handler,
+)
+
+# Components.
+from gatey_sdk.api import Api
+from gatey_sdk.auth import Auth
+from gatey_sdk.transport import build_transport_instance, BaseTransport
 
 
 class Client:
-    """
-    Florgon Gatey Client.
-    WIP. TBD.
-    """
+    """ """
 
-    _api_server_provider_url = DEFAULT_API_PROVIDER_URL
-    _api_expected_version = DEFAULT_API_VERSION
+    # Transport instance.
+    # Used for sending instance.
+    # Passed with aggregation.
+    transport = None
 
-    access_token = None
+    # Authentication instance.
+    # Used for authentication.
+    auth = None
 
-    methods = None
+    # API instance.
+    # Used for sending API HTTP requests.
+    api = None
 
-    def __init__(self, *args, **kwargs):
-        self.change_api_provider(kwargs.pop("api_provider", DEFAULT_API_PROVIDER_URL))
-        self.change_api_version(kwargs.pop("api_version", DEFAULT_API_VERSION))
-        self.change_access_token(kwargs.pop("access_token", None))
-        self.methods = Methods(client=self)
-
-    def method(self, name: str, **kwargs) -> Response:
+    def __init__(self, *, transport: Union[BaseTransport, Callable] = None):
         """
-        Executes API method with given name.
+        :param transport: Transport type argument.
         """
-        url = self._get_method_request_url(name)
-        response = self._request_method(
-            request_url=url, params=kwargs, method_name=name
-        )
-        return response
 
-    def capture_exception(self, exception: BaseException):
-        return self.methods.capture_exception(exception)
-
-    def capture_message(self, message: str):
-        return self.methods.capture_message(message)
+        # Components.
+        self.api = Api()
+        self.auth = Auth()
+        self.transport = build_transport_instance(transport_argument=transport)
 
     def catch(
         self,
@@ -58,175 +53,53 @@ class Client:
     ):
         """
         Decorator that catches the exception and captures it as Gatey exception.
+        :param reraise: If False, will not raise the exception again, application will not fall (WARNING: USE THIS WISELY TO NOT GET UNEXPECTED BEHAVIOR)
+        :param exception: Target exception type to capture.
+        :param ignored_exceptions: List of exceptions that should not be captured.
         """
-        if exception is None:
-            exception = BaseException
-        if ignored_exceptions is None:
-            ignored_exceptions = []
+        return wrap_in_exception_handler(
+            reraise=reraise,
+            exception=exception,
+            ignored_exceptions=ignored_exceptions,
+            on_catch_exception=lambda exception: self.capture_exception(
+                exception=exception
+            ),
+        )
 
-        def decorator(function: typing.Callable):
-            def wrapper(*args, **kwargs):
-                callable_result = None
-                try:
-                    callable_result = function(*args, **kwargs)
-                except exception as e:
-                    for ignored_exception in ignored_exceptions:
-                        if type(e) == ignored_exception:
-                            return None
-                    self.capture_exception(exception=e)
-                    if reraise:
-                        raise e
-                return callable_result
+    # Code below is not refactored.
+    # Code below is not refactored.
+    # Code below is not refactored.
+    # Code below is not refactored.
+    # Code below is not refactored.
 
-            return wrapper
+    def capture_exception(self, exception: BaseException):
+        self.transport.on_event_send()
 
-        return decorator
-
-    def change_access_token(self, access_token: str):
-        self.access_token = access_token
-
-    def change_api_provider(self, provider_url: str) -> None:
-        """
-        Updates API server provider URL.
-        Used for self-hosted servers.
-        """
-        if provider_url.endswith("/"):
-            raise ValueError("API provider URL must not end with trailing slash! (/)")
-        self._api_server_provider_url = provider_url
-
-    def change_api_version(self, version: str) -> None:
-        """
-        Updates API version.
-        """
-        self._api_expected_version = version
-
-    def get_server_time_difference(self) -> int:
-        """
-        Returns time difference between server and client.
-        """
-        client_time = time.time()
-        server_time = self.methods.utils_get_server_time()
-        return server_time - client_time
+    def capture_message(self, message: str):
+        self.transport.on_event_send()
 
     def resolve_exception_to_params(
         self, exception: BaseException, include_vars: bool = True
-    ) -> typing.Dict:
-        """
-        Returns dict with parameters for request, from exception.
-        """
-        traceback = exception.__traceback__
+    ) -> Dict:
+        exc_traceback = exception.__traceback__
+        traceback_vars = (
+            get_variables_from_traceback(traceback=exc_traceback)
+            if include_vars
+            else {"locals": [], "globals": []}
+        )
+        traceback = get_trace_from_traceback(exc_traceback)
         return {
-            "type": type(exception).__name__,
+            "type": str(type(exception).__name__),
             "message": str(exception),
-            "traceback": self._get_trace_from_traceback(traceback),
-            "vars": self._get_vars(traceback=traceback, include_vars=include_vars),
-            "sdk": self._get_sdk(),
             "tags": self._get_tags(),
             "platform": Platform.get_platform(),
             "runtime": Platform.get_runtime(),
+            "sdk": SDK_INFORMATION_DICT,
+            "vars": traceback_vars,
+            "traceback": traceback,
         }
 
-    def _get_tags(self) -> typing.Dict:
+    def _get_tags(self) -> Dict:
         tags = {}
         tags.update(Platform.get_platform_dependant_tags())
         return tags
-
-    def _get_vars(self, traceback: TracebackType, include_vars: bool) -> typing.Dict:
-        trace_locals, trace_globals = [], []
-        if include_vars:
-            trace_locals = traceback.tb_frame.f_locals
-            trace_globals = traceback.tb_frame.f_globals
-
-        return {
-            "locals": trace_locals,
-            "globals": trace_globals,
-        }
-
-    def _get_sdk(self) -> typing.Dict:
-        sdk_name = SDK_NAME
-        sdk_version = SDK_VERSION
-
-        return {"name": sdk_name, "version": sdk_version}
-
-    def api_version_is_current(self) -> bool:
-        """
-        Returns True, if API version of the server is same with current client API version.
-        """
-        version = self.method("").get("v")
-        return version != self._api_expected_version
-
-    def _get_trace_from_traceback(self, traceback: TracebackType) -> list[typing.Dict]:
-        trace = []
-        while traceback is not None:
-            trace.append(
-                {
-                    "filename": traceback.tb_frame.f_code.co_filename,
-                    "name": traceback.tb_frame.f_code.co_name,
-                    "line": traceback.tb_lineno,
-                }
-            )
-            traceback = traceback.tb_next
-        return trace
-
-    def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
-        """
-        Parse access token from OAuth redirect URI where user was redirected.
-        """
-        parsed_url = urlparse(url=redirect_uri)
-        access_token = parse_qs(parsed_url.query).get("access_token", None)
-        if access_token:
-            return access_token[0]
-        return ""
-
-    def _request_method(
-        self, request_url, params: typing.Dict[str, typing.Any], method_name: str
-    ) -> str:
-        """
-        Returns JSON response from server.
-        """
-
-        response = Response(response=requests.get(url=request_url, params=params))
-        error = response.raw_json().get("error", None)
-        if error:
-            error_message = error.get("message")
-            error_code = error.get("code")
-            error_status = error.get("status")
-            raise GateyApiError(
-                message=f"Failed to call method {method_name}! Error code: {error_code}. Error message: {error_message}",
-                error_code=error_code,
-                error_message=error_message,
-                error_status=error_status,
-            )
-        return response
-
-    def _get_method_request_url(self, method_name: str):
-        """
-        Returns method request url.
-        """
-        return f"{self._api_server_provider_url}/{method_name}"
-
-
-class Methods:
-    """
-    Wrapper for API methods.
-    """
-
-    client = None
-
-    def __init__(self, client: Client):
-        self.client = client
-
-    def utils_get_server_time(self) -> int:
-        response = self.client.method("utils.getServerTime")
-        return response.get("server_time")
-
-    def capture_exception(self, exception: BaseException):
-        response = self.client.method(
-            "capture.Exception",
-            **self.client.resolve_exception_to_params(exception=exception),
-        )
-        return response.get_response_object()
-
-    def capture_message(self, message: str):
-        response = self.client.method("capture.Message", message=message)
-        return response.get_response_object()

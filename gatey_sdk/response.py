@@ -6,7 +6,7 @@
     If API request will raise error, there will be `gatey_sdk.exceptions.GateyApiError`
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from requests import Response
 
 
@@ -16,20 +16,20 @@ class Response:
     """
 
     # Raw response fields.
-    _raw_json: Dict | None = None
-    _raw_response: Response | None = None
+    _raw_json: Optional[Dict] = None
+    _raw_response: Optional[Response] = None
 
     # API response fields.
-    _response_version: str | None = None
-    _response_object: Dict | None = None  # `success` response field.
+    _response_version: Optional[str] = None
+    _response_object: Optional[Dict] = None  # `success` response field.
 
-    def __init__(self, response: Response):
+    def __init__(self, http_response: Response):
         """
-        :param response: Response object.
+        :param http_response: Response object (HTTP).
         """
 
         # Store raw response to work later.
-        self._raw_response = response
+        self._raw_response = http_response
 
         # Parse raw response once for working later.
         self._raw_json = self._raw_response.json()

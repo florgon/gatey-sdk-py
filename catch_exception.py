@@ -13,9 +13,9 @@ def test_wrapped():
     print("Message after exception fire")
 
 
-try:
-    raise ValueError
-except Exception as e:
-    client.capture_exception(e)
+#try:
+#    raise ValueError
+#except Exception as e:
+#    client.capture_exception(e)
 
 test_wrapped()
