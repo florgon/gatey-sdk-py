@@ -15,7 +15,17 @@ def ft(event):
     print(json_string)
 
 
-client = gatey_sdk.Client(transport=ft, capture_vars=False)
+# client = gatey_sdk.Client(transport=ft, capture_vars=False)
+client = gatey_sdk.Client(
+    transport=gatey_sdk.HttpTransport,
+    capture_vars=False,
+    handle_global_exceptions=True,
+    global_handler_skip_internal_exceptions=False,
+    project_id=1,
+    client_secret="2DlziGbjEXsZt2q4PUcnv5LIoGHsg_hdlUXNQruR2uA",
+    server_secret=None,
+    access_token=None,
+)
 
 
 @client.catch(
@@ -30,10 +40,10 @@ def test_wrapped():
     print("Message after exception fire")
 
 
-raise BaseException("Message from exception!")
+# raise BaseException("Message from exception!")
 
 
-test_wrapped()
+# test_wrapped()
 try:
     raise ValueError
 except Exception as e:

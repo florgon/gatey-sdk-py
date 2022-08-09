@@ -44,3 +44,16 @@ class GateyTransportError(Exception):
         :param message: Message of the exception.
         """
         super().__init__(message)
+
+
+class GateyTransportImproperlyConfiguredError(Exception):
+    """
+    Raised when there is any error in the transport configuration.
+    For example, raised when no project id or client / server secret.
+    """
+
+    def __init__(self, message: str):
+        """
+        :param message: Message of the exception.
+        """
+        super().__init__(message)

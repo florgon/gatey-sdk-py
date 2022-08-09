@@ -2,7 +2,7 @@
     Main client for Gatey SDK.
     Provides root interface for working with Gatey.
 """
-from typing import Callable, Union, Dict, List
+from typing import Callable, Union, Dict, List, Optional
 
 # Utils.
 from gatey_sdk.utils import (
@@ -59,15 +59,26 @@ class Client:
         handle_global_exceptions: bool = True,
         global_handler_skip_internal_exceptions: bool = True,
         capture_vars: bool = True,
+        access_token: Optional[str] = None,
+        project_id: Optional[int] = None,
+        server_secret: Optional[str] = None,
+        client_secret: Optional[str] = None,
     ):
         """
         :param transport: Transport type argument.
         """
 
         # Components.
-        self.api = Api()
-        self.auth = Auth()
-        self.transport = build_transport_instance(transport_argument=transport)
+        self.auth = Auth(
+            access_token=access_token,
+            project_id=project_id,
+            server_secret=server_secret,
+            client_secret=client_secret,
+        )
+        self.api = Api(auth=self.auth)
+        self.transport = build_transport_instance(
+            transport_argument=transport, api=self.api, auth=self.auth
+        )
 
         # Options.
         self.capture_vars = capture_vars

@@ -3,8 +3,12 @@
 """
 
 from typing import Callable, Any, Union, Optional, Dict
-from gatey_sdk.exceptions import GateyTransportError
+from gatey_sdk.exceptions import (
+    GateyTransportError,
+    GateyTransportImproperlyConfiguredError,
+)
 from gatey_sdk.api import Api
+from gatey_sdk.auth import Auth
 
 
 class BaseTransport:
@@ -29,14 +33,40 @@ class HttpTransport(BaseTransport):
     HTTP Transport. Sends event to the Gatey Server when event sends.
     """
 
-    def __init__(self, api: Optional[Api] = None):
-        """ """
+    # Allowed aggreation / composition..
+    _api_provider: Api = None
+    _auth_provider: Optional[Auth] = None
+
+    def __init__(self, api: Optional[Api] = None, auth: Optional[Auth] = None):
+        """
+        :param api: Api provider.
+        :param auth: Authentication provider.
+        """
+
         BaseTransport.__init__(self)
-        self._api = api if api else Api()
+        self._auth_provider = auth if auth else Auth()
+        self._api_provider = api if api else Api(self._auth_provider)
 
     def send_event(self, event_dict: Dict):
-        api_response = self._api.method("event.capture")
+        self._check_improperly_configured()
+
+        api_response = self._api_provider.method(
+            "event.capture", send_project_auth=True
+        )
         return api_response
+
+    def _check_improperly_configured(self):
+        if self._auth_provider.project_id is None:
+            raise GateyTransportImproperlyConfiguredError(
+                "HttpTransport improperly configured! No project id found in auth provider!"
+            )
+        if (
+            self._auth_provider.server_secret is None
+            and self._auth_provider.client_secret is None
+        ):
+            raise GateyTransportImproperlyConfiguredError(
+                "HttpTransport improperly configured! No client / server secret found in auth provider!"
+            )
 
 
 class FuncTransport(BaseTransport):
@@ -66,6 +96,8 @@ class FuncTransport(BaseTransport):
 
 def build_transport_instance(
     transport_argument: Any = None,
+    api: Optional[Api] = None,
+    auth: Optional[Auth] = None,
 ) -> Union[BaseTransport, None]:
     """
     Builds transport instance by transport argument.
@@ -74,7 +106,7 @@ def build_transport_instance(
 
     if transport_argument is None:
         # If nothing is passed, should be default http transport type.
-        return HttpTransport()
+        return HttpTransport(api=api, auth=auth)
 
     if isinstance(transport_argument, type) and issubclass(
         transport_argument, BaseTransport
@@ -82,7 +114,7 @@ def build_transport_instance(
         # Passed subclass of BaseTransport as transport.
         # Should be instantiated as cls.
         transport_class = transport_argument
-        return transport_class()
+        return transport_class(api=api, auth=auth)
 
     if callable(transport_argument):
         # Passed callable (function) as transport.

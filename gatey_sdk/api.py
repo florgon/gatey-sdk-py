@@ -2,8 +2,10 @@
     API class for working with API (HTTP).
     Sends HTTP requests, handles API methods.
 """
+from typing import Optional
 import requests
 
+from gatey_sdk.auth import Auth
 from gatey_sdk.response import Response
 from gatey_sdk.exceptions import GateyApiError
 from gatey_sdk.utils import remove_trailing_slash
@@ -25,7 +27,27 @@ class Api:
     # Version that expected from the API.
     _api_server_expected_version = API_DEFAULT_SERVER_EXPECTED_VERSION
 
-    def method(self, name: str, **kwargs) -> Response:
+    # `Auth` instance that provides authentication fields.
+    _auth_provider: Auth = None
+
+    def __init__(self, auth: Optional[Auth] = None):
+        """
+        :param auth: Auth provider as the `Auth` instance.
+        """
+        if not isinstance(auth, Auth):
+            raise TypeError(
+                "Auth must be an instance of `Auth`! You may not pass auth as it will be initialise blank internally in `Api`."
+            )
+        self._auth_provider = auth if auth else Auth()
+
+    def method(
+        self,
+        name: str,
+        *,
+        send_access_token: bool = False,
+        send_project_auth: bool = False,
+        **kwargs,
+    ) -> Response:
         """
         Executes API method with given name.
         And then return response from it.
@@ -35,8 +57,24 @@ class Api:
         # Build URL where API method is located.
         api_server_method_url = f"{self._api_server_provider_url}/{name}"
 
+        http_params = kwargs.copy()
+        if send_access_token and self._auth_provider:
+            if self._auth_provider.access_token:
+                http_params.update({"access_token": self._auth_provider.access_token})
+
+        if send_project_auth and not send_access_token and self._auth_provider:
+            if self._auth_provider.project_id:
+                http_params.update({"project_id": self._auth_provider.project_id})
+            if self._auth_provider.server_secret:
+                http_params.update({"server_secret": self._auth_provider.server_secret})
+            if (
+                self._auth_provider.client_secret
+                and not self._auth_provider.server_secret
+            ):
+                http_params.update({"client_secret": self._auth_provider.client_secret})
+
         # Send HTTP request.
-        http_response = requests.get(url=api_server_method_url, params=kwargs)
+        http_response = requests.get(url=api_server_method_url, params=http_params)
 
         # Wrap HTTP response in to own Response object.
         response = Response(http_response=http_response)
