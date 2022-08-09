@@ -14,7 +14,9 @@ pip install --upgrade gatey-sdk
 
 ```python
 import gatey_sdk
-client = gatey_sdk.Client()
+client = gatey_sdk.Client(project_id=PROJECT_ID, server_secret=PROJECT_S_SECRET, client_secret=PROJECT_C_SECRET)
+# Notice that you should only enter server or client secret, passing both have no effect as always server will be used.
+# (as client not preferred if server secret is passed).
 ```
 
 ### Usage
