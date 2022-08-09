@@ -75,6 +75,10 @@ class Api:
             error_code = error.get("code")
             error_status = error.get("status")
 
+            # If invalid request by validation error, there will be additional error information in "exc" field of the error.
+            if error_code == 3 and "exc" in error:
+                error_message = f"{error_message} Additional exception information: {error.get('exc')}"
+
             # Raise ApiError exception.
             message = f"Failed to call API method {method_name}! Error code: {error_code}. Error message: {error_message}"
             raise GateyApiError(

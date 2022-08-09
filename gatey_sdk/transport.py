@@ -35,7 +35,8 @@ class HttpTransport(BaseTransport):
         self._api = api if api else Api()
 
     def send_event(self, event_dict: Dict):
-        return self._api.method("event.Capture")
+        api_response = self._api.method("event.capture")
+        return api_response
 
 
 class FuncTransport(BaseTransport):
