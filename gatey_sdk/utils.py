@@ -78,7 +78,7 @@ def wrap_in_exception_handler(
     return decorator
 
 
-def register_system_exception_hook(hook: Callable):
+def register_system_exception_hook(hook: Callable, skip_internal_exceptions: bool = True):
     """
     Register exception hook for system.
     :param hook: Will be called when exception triggered.
@@ -97,9 +97,10 @@ def register_system_exception_hook(hook: Callable):
                 # Try to handle this exception with hook.
                 hook(exception=exception)
                 return
-            except (GateyApiError, GateyTransportError):
+            except (GateyApiError, GateyTransportError) as e:
                 # If there is any error while processing global exception handler.
-                pass
+                if not skip_internal_exceptions:
+                    raise e
 
         # Default system hook.
         sys.__excepthook__(exception_type, exception, traceback)

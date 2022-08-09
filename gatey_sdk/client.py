@@ -57,6 +57,7 @@ class Client:
         *,
         transport: Union[BaseTransport, Callable] = None,
         handle_global_exceptions: bool = True,
+        global_handler_skip_internal_exceptions: bool = True,
         capture_vars: bool = True,
     ):
         """
@@ -79,7 +80,10 @@ class Client:
         # Register system exception hook,
         # to handle global exceptions.
         if handle_global_exceptions is True:
-            register_system_exception_hook(hook=self.on_catch_exception_hook)
+            register_system_exception_hook(
+                hook=self.on_catch_exception_hook,
+                skip_internal_exceptions=global_handler_skip_internal_exceptions,
+            )
 
     def catch(
         self,
