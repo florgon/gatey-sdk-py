@@ -21,7 +21,7 @@ client = gatey_sdk.Client()
 
 ```python
 import gatey_sdk
-client = gatey_sdk.Client()
+client = gatey_sdk.Client(project_id=PROJECT_ID, server_secret=PROJECT_SECRET)
 
 # Will send message (capture).
 client.capture_message("Hello Python Gatey SDK!", level="DEBUG")
