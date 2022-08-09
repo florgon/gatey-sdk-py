@@ -1,7 +1,7 @@
 """
     Transport classes, that handles sending events from Gatey.
 """
-
+import json
 from typing import Callable, Any, Union, Optional, Dict
 from gatey_sdk.exceptions import (
     GateyTransportError,
@@ -46,16 +46,40 @@ class HttpTransport(BaseTransport):
         BaseTransport.__init__(self)
         self._auth_provider = auth if auth else Auth()
         self._api_provider = api if api else Api(self._auth_provider)
-
-    def send_event(self, event_dict: Dict):
         self._check_improperly_configured()
 
+    def send_event(self, event_dict: Dict):
+        api_params = self._api_params_from_event_dict(event_dict=event_dict)
         api_response = self._api_provider.method(
-            "event.capture", send_project_auth=True
+            "event.capture", send_project_auth=True, **api_params
         )
         return api_response
 
+    def _api_params_from_event_dict(self, event_dict: Dict):
+        api_params = {
+            "level": event_dict["level"],
+        }
+
+        # Event data.
+        if "exception" in event_dict:
+            api_params["exception"] = json.dumps(event_dict["exception"])
+        if "message" in event_dict:
+            api_params["message"] = event_dict["message"]
+
+        # System data.
+        if "platform" in event_dict:
+            api_params["platform"] = json.dumps(event_dict["platform"])
+        if "runtime" in event_dict:
+            api_params["runtime"] = json.dumps(event_dict["runtime"])
+        if "sdk" in event_dict:
+            api_params["sdk"] = json.dumps(event_dict["sdk"])
+
+        return api_params
+
     def _check_improperly_configured(self):
+        """
+        Raises error if auth provider improperly configured for sending event.
+        """
         if self._auth_provider.project_id is None:
             raise GateyTransportImproperlyConfiguredError(
                 "HttpTransport improperly configured! No project id found in auth provider!"

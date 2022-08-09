@@ -20,6 +20,7 @@ SDK_INFORMATION_DICT = {"name": SDK_NAME, "version": SDK_VERSION}
 # Exception attribute names.
 EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK = "gatey_should_skip_system_hook"
 EXC_ATTR_WAS_HANDLED = "gatey_was_handled"
+EXC_ATTR_IS_INTERNAL = "gatey_is_internal"
 
 # Runtime name for runtime event data.
 RUNTIME_NAME = "Python"

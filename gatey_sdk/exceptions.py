@@ -3,6 +3,7 @@
 """
 
 from gatey_sdk.response import Response
+from gatey_sdk.consts import EXC_ATTR_IS_INTERNAL
 
 
 class GateyApiError(Exception):
@@ -31,6 +32,7 @@ class GateyApiError(Exception):
         self.error_message = error_message
         self.error_status = error_status
         self.response = response
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
 
 class GateyTransportError(Exception):
@@ -44,6 +46,7 @@ class GateyTransportError(Exception):
         :param message: Message of the exception.
         """
         super().__init__(message)
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
 
 class GateyTransportImproperlyConfiguredError(Exception):
@@ -57,3 +60,4 @@ class GateyTransportImproperlyConfiguredError(Exception):
         :param message: Message of the exception.
         """
         super().__init__(message)
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)

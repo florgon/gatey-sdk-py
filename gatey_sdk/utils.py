@@ -9,10 +9,15 @@ from typing import Dict, List, Callable, Optional
 from types import TracebackType
 
 from gatey_sdk.consts import SDK_INFORMATION_DICT
-from gatey_sdk.exceptions import GateyApiError, GateyTransportError
+from gatey_sdk.exceptions import (
+    GateyApiError,
+    GateyTransportError,
+    GateyTransportImproperlyConfiguredError,
+)
 from gatey_sdk.consts import (
     EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK,
     EXC_ATTR_WAS_HANDLED,
+    EXC_ATTR_IS_INTERNAL,
     RUNTIME_NAME,
 )
 
@@ -54,20 +59,18 @@ def wrap_in_exception_handler(
                 # Typed.
                 e: BaseException = e
 
-                if skip_global_handler_on_ignore:
-                    # If we should skip global exception handler.
-                    setattr(e, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK, True)
-
                 # Do not handle ignored exceptions.
                 if exception_is_ignored(e, ignored_exceptions):
+                    if skip_global_handler_on_ignore:
+                        # If we should skip global exception handler.
+                        setattr(e, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK, True)
                     raise e
 
                 # Call catch event.
                 if callable(on_catch_exception):
                     on_catch_exception(e)
-
-                # Mark as handled.
-                setattr(e, EXC_ATTR_WAS_HANDLED, True)
+                    # Mark as handled.
+                    setattr(e, EXC_ATTR_WAS_HANDLED, True)
 
                 # Raise exception again if we expected that.
                 if reraise is True:
@@ -78,7 +81,9 @@ def wrap_in_exception_handler(
     return decorator
 
 
-def register_system_exception_hook(hook: Callable, skip_internal_exceptions: bool = True):
+def register_system_exception_hook(
+    hook: Callable, skip_internal_exceptions: bool = True
+):
     """
     Register exception hook for system.
     :param hook: Will be called when exception triggered.
@@ -91,13 +96,18 @@ def register_system_exception_hook(hook: Callable, skip_internal_exceptions: boo
     ):
         # System exception hook handler.
 
-        if not hasattr(exception, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK):
+        was_handled = hasattr(exception, EXC_ATTR_WAS_HANDLED)
+        if not was_handled and not hasattr(exception, EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK):
             # If marked as skipped for system hook.
             try:
                 # Try to handle this exception with hook.
                 hook(exception=exception)
                 return
-            except (GateyApiError, GateyTransportError) as e:
+            except (
+                GateyApiError,
+                GateyTransportError,
+                GateyTransportImproperlyConfiguredError,
+            ) as e:
                 # If there is any error while processing global exception handler.
                 if not skip_internal_exceptions:
                     raise e

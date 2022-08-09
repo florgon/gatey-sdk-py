@@ -15,8 +15,8 @@ def ft(event):
     print(json_string)
 
 
-# client = gatey_sdk.Client(transport=ft, capture_vars=False)
-client = gatey_sdk.Client(
+client = gatey_sdk.Client(transport=ft, capture_vars=False)
+client2 = gatey_sdk.Client(
     transport=gatey_sdk.HttpTransport,
     capture_vars=False,
     handle_global_exceptions=True,
@@ -29,7 +29,7 @@ client = gatey_sdk.Client(
 
 
 @client.catch(
-    reraise=False,
+    reraise=True,
     exception=BaseException,
     ignored_exceptions=[],
     skip_global_handler_on_ignore=False,
@@ -43,8 +43,8 @@ def test_wrapped():
 # raise BaseException("Message from exception!")
 
 
-# test_wrapped()
-try:
-    raise ValueError
-except Exception as e:
-    client.capture_exception(e)
+test_wrapped()
+# try:
+#    raise ValueError
+# except Exception as e:
+#    client.capture_exception(e)
