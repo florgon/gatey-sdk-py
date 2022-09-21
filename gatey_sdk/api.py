@@ -34,7 +34,7 @@ class Api:
         """
         :param auth: Auth provider as the `Auth` instance.
         """
-        if not isinstance(auth, Auth):
+        if auth and not isinstance(auth, Auth):
             raise TypeError(
                 "Auth must be an instance of `Auth`! You may not pass auth as it will be initialise blank internally in `Api`."
             )
