@@ -146,4 +146,6 @@ def build_transport_instance(
         return FuncTransport(function=transport_argument)
 
     # Unable to instantiate transport instance.
-    return None
+    raise GateyTransportImproperlyConfiguredError(
+        "Failed to build transport instance. Please pass valid transport argument!"
+    )

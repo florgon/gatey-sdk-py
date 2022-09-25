@@ -102,7 +102,7 @@ class Client:
         reraise: bool = True,
         exception: BaseException | None = None,
         ignored_exceptions: List[BaseException] | None = None,
-        skip_global_handler_on_ignore: bool = False,
+        skip_global_handler_on_ignore: bool = False
     ):
         """
         Decorator that catches the exception and captures it as Gatey exception.
