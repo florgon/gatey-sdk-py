@@ -15,16 +15,18 @@ def ft(event):
     print(json_string)
 
 
-client = gatey_sdk.Client(transport=ft, capture_vars=False)
-client2 = gatey_sdk.Client(
+print(gatey_sdk.__version__)
+# client = gatey_sdk.Client(transport=ft, capture_vars=False)
+client = gatey_sdk.Client(
     transport=gatey_sdk.HttpTransport,
     capture_vars=False,
     handle_global_exceptions=True,
-    global_handler_skip_internal_exceptions=False,
+    global_handler_skip_internal_exceptions=True,
     project_id=1,
-    client_secret="2DlziGbjEXsZt2q4PUcnv5LIoGHsg_hdlUXNQruR2uA",
+    client_secret="",
     server_secret=None,
     access_token=None,
+    check_api_auth_on_init=False,
 )
 
 
@@ -36,7 +38,7 @@ client2 = gatey_sdk.Client(
 )
 def test_wrapped():
     print("Message before exception fire")
-    raise TypeError
+    raise TypeError("message text")
     print("Message after exception fire")
 
 

@@ -126,3 +126,14 @@ class Api:
                 error_status=error_status,
                 response=response,
             )
+
+    def do_auth_check(self) -> None:
+        """
+        Checks authentication with API.
+        """
+        raise NotImplementedError(
+            "`do_auth_check` not implemented yet! Please disable `check_api_auth_on_init`"
+        )
+        self.method(
+            "project.checkAuth", send_access_token=False, send_project_auth=True
+        )

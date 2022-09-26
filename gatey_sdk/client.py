@@ -63,6 +63,7 @@ class Client:
         project_id: Optional[int] = None,
         server_secret: Optional[str] = None,
         client_secret: Optional[str] = None,
+        check_api_auth_on_init: bool = False,
     ):
         """
         :param transport: Transport type argument.
@@ -87,6 +88,10 @@ class Client:
         self.on_catch_exception_hook = lambda exception: self.capture_exception(
             exception=exception
         )
+
+        # Check API auth if requested.
+        if check_api_auth_on_init is True:
+            self.api.do_auth_check()
 
         # Register system exception hook,
         # to handle global exceptions.
