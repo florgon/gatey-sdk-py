@@ -54,9 +54,6 @@ class Api:
         :param name: Name of the method to call.
         """
 
-        # Build URL where API method is located.
-        api_server_method_url = f"{self._api_server_provider_url}/{name}"
-
         http_params = kwargs.copy()
         if send_access_token and self._auth_provider:
             if self._auth_provider.access_token:
@@ -72,6 +69,9 @@ class Api:
                 and not self._auth_provider.server_secret
             ):
                 http_params.update({"client_secret": self._auth_provider.client_secret})
+
+        # Build URL where API method is located.
+        api_server_method_url = f"{self._api_server_provider_url}/{name}"
 
         # Send HTTP request.
         http_response = requests.get(url=api_server_method_url, params=http_params)
@@ -104,7 +104,7 @@ class Api:
         """
         Processes error, and if there is any error, raise ApiError exception.
         """
-        error = response.raw_json().get("error", None)
+        error = response.raw_json().get("error")
         if error:
             # If there is an error.
 

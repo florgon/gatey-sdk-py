@@ -33,8 +33,8 @@ class Response:
 
         # Parse raw response once for working later.
         self._raw_json = self._raw_response.json()
-        self._response_object = self._raw_json.get("success", None)
-        self._response_version = self._raw_json.get("v", None)
+        self._response_object = self._raw_json.get("success")
+        self._response_version = self._raw_json.get("v")
 
     def get(self, key: str, default: Any = None):
         """
@@ -52,7 +52,7 @@ class Response:
         """
         if key not in self._response_object:
             raise KeyError(f"{key} does not exist in the response!")
-        field_value = self._response_object.get(key, None)
+        field_value = self._response_object.get(key)
         return field_value
 
     def __getattr__(self, attribute_name: str) -> Any:
@@ -62,7 +62,7 @@ class Response:
         """
         if attribute_name not in self._response_object:
             raise AttributeError(f"{attribute_name} does not exist in the response!")
-        attribute_value = self._response_object.get(attribute_name, None)
+        attribute_value = self._response_object.get(attribute_name)
         return attribute_value
 
     def get_version(self) -> str:
