@@ -60,19 +60,12 @@ class HttpTransport(BaseTransport):
             "level": event_dict["level"],
         }
 
-        # Event data.
-        if "exception" in event_dict:
-            api_params["exception"] = json.dumps(event_dict["exception"])
-        if "message" in event_dict:
-            api_params["message"] = event_dict["message"]
+        event_params = ["exception", "message"]
+        system_params = ["platform", "runtime", "sdk"]
 
-        # System data.
-        if "platform" in event_dict:
-            api_params["platform"] = json.dumps(event_dict["platform"])
-        if "runtime" in event_dict:
-            api_params["runtime"] = json.dumps(event_dict["runtime"])
-        if "sdk" in event_dict:
-            api_params["sdk"] = json.dumps(event_dict["sdk"])
+        for param in event_params + system_params:
+            if param in event_dict:
+                api_params[param] = json.dumps(event_dict[param])
 
         return api_params
 

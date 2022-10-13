@@ -17,7 +17,6 @@ from gatey_sdk.exceptions import (
 from gatey_sdk.consts import (
     EXC_ATTR_SHOULD_SKIP_SYSTEM_HOOK,
     EXC_ATTR_WAS_HANDLED,
-    EXC_ATTR_IS_INTERNAL,
     RUNTIME_NAME,
 )
 
@@ -25,8 +24,8 @@ from gatey_sdk.consts import (
 def wrap_in_exception_handler(
     *,
     reraise: bool = True,
-    exception: BaseException | None = None,
-    ignored_exceptions: List[BaseException] | None = None,
+    exception: Optional[BaseException] = None,
+    ignored_exceptions: Optional[List[BaseException]] = None,
     on_catch_exception: Optional[Callable] = None,
     skip_global_handler_on_ignore: bool = False,
 ) -> Callable:

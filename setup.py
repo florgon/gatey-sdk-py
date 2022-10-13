@@ -59,7 +59,7 @@ setup(
     package_dir={"gatey_sdk": "gatey_sdk"},
     include_package_data=True,
     license=version_file["__license__"],
-    python_requires=">=3.10",
+    python_requires=">=3.7",
     install_requires=["requests^2.28.1"],
     classifiers=classifiers,
     project_urls=project_urls,
