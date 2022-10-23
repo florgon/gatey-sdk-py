@@ -55,7 +55,7 @@ class Client:
     def __init__(
         self,
         *,
-        transport: Union[BaseTransport, Callable] = None,
+        transport: Optional[Union[BaseTransport, Callable]] = None,
         handle_global_exceptions: bool = True,
         global_handler_skip_internal_exceptions: bool = True,
         capture_vars: bool = True,
@@ -89,8 +89,10 @@ class Client:
             exception=exception
         )
 
-        # Check API auth if requested.
-        if check_api_auth_on_init is True:
+        # Check API auth if requested and should.
+        # Notice that auth check is not done when you are using custom transports.
+        # (even it is default transport)
+        if check_api_auth_on_init is True and transport is None:
             self.api.do_hard_auth_check()
 
         # Register system exception hook,
