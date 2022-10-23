@@ -4,7 +4,6 @@
 """
 
 from typing import Optional
-
 # from urllib.parse import urlparse
 # from urllib.parse import parse_qs
 
@@ -26,10 +25,10 @@ class Auth:
 
     def __init__(
         self,
-        access_token: Optional[str],
-        project_id: Optional[int],
-        server_secret: Optional[str],
-        client_secret: Optional[str],
+        access_token: Optional[str] = None,
+        project_id: Optional[int] = None,
+        server_secret: Optional[str] = None,
+        client_secret: Optional[str] = None,
     ):
         """
         :param access_token: Access token of the your account with `gatey` scope.

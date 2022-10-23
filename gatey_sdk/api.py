@@ -2,12 +2,13 @@
     API class for working with API (HTTP).
     Sends HTTP requests, handles API methods.
 """
-from typing import Optional
 import requests
+
+from typing import Optional
 
 from gatey_sdk.auth import Auth
 from gatey_sdk.response import Response
-from gatey_sdk.exceptions import GateyApiError
+from gatey_sdk.exceptions import GateyApiError, GateyApiAuthError
 from gatey_sdk.utils import remove_trailing_slash
 from gatey_sdk.consts import (
     API_DEFAULT_SERVER_PROVIDER_URL,
@@ -127,13 +128,30 @@ class Api:
                 response=response,
             )
 
-    def do_auth_check(self) -> None:
+    def do_auth_check(self) -> bool:
         """
         Checks authentication with API.
+        Returns is it successfully or no.
         """
-        raise NotImplementedError(
-            "`do_auth_check` not implemented yet! Please disable `check_api_auth_on_init`"
-        )
-        self.method(
-            "project.checkAuth", send_access_token=False, send_project_auth=True
-        )
+        try:
+            self.do_hard_auth_check()
+        except (GateyApiError, GateyApiAuthError):
+            return False
+        return True
+
+        
+    def do_hard_auth_check(self) -> bool:
+        """
+        Checks authentication with API.
+        Raises API error exception if unable to authenticate you.
+        """
+        try:
+            self.method(
+                "project.checkAuthority", send_access_token=False, send_project_auth=True
+            )
+        except GateyApiError as api_error:
+            if api_error.error_code == 7:
+                raise GateyApiAuthError("You are entered incorrect project secret (client or server)! Please review your SDK settings! (See previous exception to see more described information)")
+            if api_error.error_code == 8:
+                raise GateyApiAuthError("You are entered not existing project id! Please review your SDK settings! (See previous exception to see more described information)")
+            raise GateyApiAuthError("There is unknown error while trying to check auth (do_auth)! (See previous exception to see more described information)")

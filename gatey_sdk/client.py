@@ -63,7 +63,7 @@ class Client:
         project_id: Optional[int] = None,
         server_secret: Optional[str] = None,
         client_secret: Optional[str] = None,
-        check_api_auth_on_init: bool = False,
+        check_api_auth_on_init: bool = True,
     ):
         """
         :param transport: Transport type argument.
@@ -91,7 +91,7 @@ class Client:
 
         # Check API auth if requested.
         if check_api_auth_on_init is True:
-            self.api.do_auth_check()
+            self.api.do_hard_auth_check()
 
         # Register system exception hook,
         # to handle global exceptions.

@@ -6,7 +6,12 @@ from gatey_sdk.response import Response
 from gatey_sdk.consts import EXC_ATTR_IS_INTERNAL
 
 
-class GateyApiError(Exception):
+class GateyError(Exception):
+    """
+    Super class for Gatey exceptions.
+    """
+
+class GateyApiError(GateyError):
     """
     Raised when there is any error with response.
     Means API return error (not success).
@@ -34,8 +39,19 @@ class GateyApiError(Exception):
         self.response = response
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
+class GateyApiAuthError(GateyError):
+    """
+    Raised when there is any error in the auth to the API.
+    """
 
-class GateyTransportError(Exception):
+    def __init__(self, message: str):
+        """
+        :param message: Message of the exception.
+        """
+        super().__init__(message)
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)
+
+class GateyTransportError(GateyError):
     """
     Raised when there is any error in the transport.
     For example, raised when `FuncTransport` function raises any exceptions.
@@ -49,7 +65,7 @@ class GateyTransportError(Exception):
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
 
-class GateyTransportImproperlyConfiguredError(Exception):
+class GateyTransportImproperlyConfiguredError(GateyError):
     """
     Raised when there is any error in the transport configuration.
     For example, raised when no project id or client / server secret.
@@ -61,3 +77,5 @@ class GateyTransportImproperlyConfiguredError(Exception):
         """
         super().__init__(message)
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
+
+
