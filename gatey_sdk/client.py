@@ -107,8 +107,8 @@ class Client:
         self,
         *,
         reraise: bool = True,
-        exception: BaseException | None = None,
-        ignored_exceptions: List[BaseException] | None = None,
+        exception: Optional[BaseException] = None,ne,
+        ignored_exceptions: Optional[List[BaseException]] = None,
         skip_global_handler_on_ignore: bool = False,
     ):
         """
