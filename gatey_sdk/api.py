@@ -25,6 +25,9 @@ class Api:
     # Can be changed for Self-Hosted servers.
     _api_server_provider_url = API_DEFAULT_SERVER_PROVIDER_URL
 
+    # Timeout for requests.
+    _api_server_requests_timeout = 7
+
     # Version that expected from the API.
     _api_server_expected_version = API_DEFAULT_SERVER_EXPECTED_VERSION
 
@@ -75,7 +78,11 @@ class Api:
         api_server_method_url = f"{self._api_server_provider_url}/{name}"
 
         # Send HTTP request.
-        http_response = requests.get(url=api_server_method_url, params=http_params)
+        http_response = requests.get(
+            url=api_server_method_url,
+            params=http_params,
+            timeout=self._api_server_requests_timeout,
+        )
 
         # Wrap HTTP response in to own Response object.
         response = Response(http_response=http_response)
@@ -93,6 +100,13 @@ class Api:
         """
         provider_url = remove_trailing_slash(provider_url)
         self._api_server_provider_url = provider_url
+
+    def change_api_server_timeout(self, timeout: int) -> None:
+        """
+        Updates API timeout for requests.
+        :param timeout: New timeout
+        """
+        self._api_server_requests_timeout = timeout
 
     def change_api_server_expected_version(self, version: str) -> None:
         """
@@ -139,7 +153,6 @@ class Api:
             return False
         return True
 
-        
     def do_hard_auth_check(self) -> bool:
         """
         Checks authentication with API.
@@ -147,11 +160,19 @@ class Api:
         """
         try:
             self.method(
-                "project.checkAuthority", send_access_token=False, send_project_auth=True
+                "project.checkAuthority",
+                send_access_token=False,
+                send_project_auth=True,
             )
         except GateyApiError as api_error:
             if api_error.error_code == 7:
-                raise GateyApiAuthError("You are entered incorrect project secret (client or server)! Please review your SDK settings! (See previous exception to see more described information)")
+                raise GateyApiAuthError(
+                    "You are entered incorrect project secret (client or server)! Please review your SDK settings! (See previous exception to see more described information)"
+                )
             if api_error.error_code == 8:
-                raise GateyApiAuthError("You are entered not existing project id! Please review your SDK settings! (See previous exception to see more described information)")
-            raise GateyApiAuthError("There is unknown error while trying to check auth (do_auth)! (See previous exception to see more described information)")
+                raise GateyApiAuthError(
+                    "You are entered not existing project id! Please review your SDK settings! (See previous exception to see more described information)"
+                )
+            raise GateyApiAuthError(
+                "There is unknown error while trying to check auth (do_auth)! (See previous exception to see more described information)"
+            )
