@@ -13,7 +13,7 @@ def print_transport(event):
 
 client = gatey_sdk.Client(
     transport=print_transport,
-    capture_vars=False,
+    exceptions_capture_vars=False,
     handle_global_exceptions=True,
     global_handler_skip_internal_exceptions=True,
 )

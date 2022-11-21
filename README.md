@@ -15,7 +15,7 @@ pip install --upgrade gatey-sdk
 ```python
 import gatey_sdk
 client = gatey_sdk.Client(
-    project_id=PROJECT_ID, 
+    project_id=PROJECT_ID,
     server_secret=PROJECT_SERVER_SECRET,
     client_secret=PROJECT_CLIENT_SECRET,
 )
@@ -28,7 +28,7 @@ client = gatey_sdk.Client(
 ```python
 import gatey_sdk
 client = gatey_sdk.Client(
-    project_id=PROJECT_ID, 
+    project_id=PROJECT_ID,
     server_secret=PROJECT_SERVER_SECRET,
 )
 

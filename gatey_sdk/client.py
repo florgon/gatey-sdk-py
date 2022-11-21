@@ -2,9 +2,12 @@
     Main client for Gatey SDK.
     Provides root interface for working with Gatey.
 """
+
+import atexit
 from typing import Callable, Union, Dict, List, Optional
 
 # Utils.
+from gatey_sdk.exceptions import GateyError
 from gatey_sdk.utils import (
     wrap_in_exception_handler,
     register_system_exception_hook,
@@ -31,42 +34,58 @@ class Client:
     ```
     """
 
-    # If true, will send locals(), globals() variables,
-    # alongside with event data.
-    capture_vars = True
-
-    # Transport instance.
-    # Used for sending instance.
-    # Passed with aggregation.
-    transport = None
-
-    # Authentication instance.
-    # Used for authentication.
-    auth = None
-
-    # API instance.
-    # Used for sending API HTTP requests.
-    api = None
+    # Instances.
+    transport = None  # Used for sending instance (Passed with aggregation).
+    auth = None  # Used for authentication.
+    api = None  # Used for sending API HTTP requests.
 
     # Function that will be called when any exception is excepted.
     # Used in global exception handler and catch.
     on_catch_exception_hook = None
 
+    # Events data queue that waiting for being sent to server.
+    events_buffer: List[Dict] = []
+
+    # Settings.
+
+    # If true, will send locals(), globals() variables,
+    # alongside with event data.
+    exceptions_capture_vars = True
+
+    # Buffering settings for bulk sending.
+    buffer_events_for_bulk_sending = None
+    buffer_events_max_capacity = 0
+
     def __init__(
         self,
         *,
         transport: Optional[Union[BaseTransport, Callable]] = None,
-        handle_global_exceptions: bool = True,
+        # Settings.
         global_handler_skip_internal_exceptions: bool = True,
-        capture_vars: bool = True,
+        buffer_events_for_bulk_sending: bool = True,
+        buffer_events_max_capacity: int = 3,
+        handle_global_exceptions: bool = True,
+        exceptions_capture_vars: bool = True,
+        # User auth settings.
         access_token: Optional[str] = None,
+        # SDK auth settings.
         project_id: Optional[int] = None,
         server_secret: Optional[str] = None,
         client_secret: Optional[str] = None,
         check_api_auth_on_init: bool = True,
     ):
         """
-        :param transport: Transport type argument.
+        :param transport:
+        :param global_handler_skip_internal_exceptions:
+        :param buffer_events_for_bulk_sending: Will buffer all events (not send immediatly) and will do bulk send when this is required (at exit, or when reached buffer max cap)
+        :param buffer_events_max_capacity: Maximal size of buffer to do bulk sending (left 0 for no cap).
+        :param handle_global_exceptions: Will catch all exception (use system hook for that).
+        :param exceptions_capture_vars: Will capture variable (globals, locals) for all exceptions.
+        :param access_token:
+        :param project_id:
+        :param server_secret:
+        :param client_secret:
+        :param check_api_auth_on_init: Will do hard auth check at init.
         """
 
         # Components.
@@ -82,7 +101,9 @@ class Client:
         )
 
         # Options.
-        self.capture_vars = capture_vars
+        self.exceptions_capture_vars = exceptions_capture_vars
+        self.buffer_events_for_bulk_sending = buffer_events_for_bulk_sending
+        self.buffer_events_max_capacity = buffer_events_max_capacity
 
         # Default hook event for captured exceptions.
         self.on_catch_exception_hook = lambda exception: self.capture_exception(
@@ -102,6 +123,10 @@ class Client:
                 hook=self.on_catch_exception_hook,
                 skip_internal_exceptions=global_handler_skip_internal_exceptions,
             )
+
+        # Bulk send buffered events at exit.
+        if self.buffer_events_for_bulk_sending:
+            atexit.register(self.bulk_send_buffered_events)
 
     def catch(
         self,
@@ -130,11 +155,14 @@ class Client:
         """
         Captures raw event.
         :param event: Raw event dictionary.
+        :param level: Level of the event.
         """
         event_dict = event
         event_dict.update({"level": level})
         event_dict.update(get_additional_event_data())
-        self.transport.send_event(event_dict=event)
+
+        # Will buffer or immediatly send event.
+        self._buffer_captured_event(event_dict=event_dict)
 
     def capture_message(self, level: str, message: str) -> None:
         """
@@ -152,9 +180,52 @@ class Client:
         :param _level: Level of the event that will be sent.
         """
         exception_dict = event_dict_from_exception(
-            exception=exception, skip_vars=not self.capture_vars
+            exception=exception, skip_vars=not self.exceptions_capture_vars
         )
         event_dict = {"exception": exception_dict}
         if "description" in exception_dict:
             event_dict["message"] = exception_dict["description"]
         self.capture_event(event=event_dict, level=_level)
+
+    def bulk_send_buffered_events(self) -> bool:
+        """
+        Sends all buffered events.
+        Returns is all events was sent.
+        """
+
+        # Copy buffer and clear it.
+        events_bulk_queue = self.events_buffer.copy()
+        self.events_buffer = []
+
+        for event_dict in events_bulk_queue:
+            try:
+                self.transport.send_event(event_dict=event_dict)
+            except GateyError:
+                self.events_buffer.append(event_dict)
+
+        return len(self.events_buffer) == 0
+
+    def _events_buffer_is_full(self) -> bool:
+        """
+        Returns is events buffer is full and should be bulk sent.
+        """
+        if (
+            self.buffer_events_max_capacity is None
+            or self.buffer_events_max_capacity == 0
+        ):
+            return False
+        return len(self.events_buffer) >= self.buffer_events_max_capacity
+
+    def _buffer_captured_event(self, event_dict: Dict) -> None:
+        """
+        Buffers captured event for bulk sending later.
+        """
+
+        # Pass directly if should not buffer.
+        if not self.buffer_events_for_bulk_sending:
+            return self.transport.send_event(event_dict=event_dict)
+
+        # Do buffer and send if required.
+        self.events_buffer.append(event_dict)
+        if self._events_buffer_is_full():
+            self.bulk_send_buffered_events()
