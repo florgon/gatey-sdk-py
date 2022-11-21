@@ -4,6 +4,7 @@
 """
 
 from typing import Optional
+
 # from urllib.parse import urlparse
 # from urllib.parse import parse_qs
 
@@ -41,12 +42,42 @@ class Auth:
         self.server_secret = server_secret
         self.client_secret = client_secret
 
-    # def _parse_access_token_from_redirect_uri(self, redirect_uri: str) -> str:
-    #    """
-    #    Parse access token from OAuth redirect URI where user was redirected.
-    #    """
-    #    parsed_url = urlparse(url=redirect_uri)
-    #    access_token = parse_qs(parsed_url.query).get("access_token", None)
-    #    if access_token:
-    #        return access_token[0]
-    #    return ""
+    def request_oauth_from_stdin(self) -> None:
+        """
+        Get access token from stdin (IO, user).
+        """
+
+        print(
+            "\tOpen page in browser, signin and copy url here:",
+            self.get_manual_oauth_user_login_url(),
+            sep="\n\t\t",
+        )
+
+        oauth_redirect_uri = input("\tRedirect URI: ")
+        oauth_access_token = self.parse_access_token_from_redirect_uri(
+            redirect_uri=oauth_redirect_uri
+        )
+
+        print(f"\tSuccessfully grabbed access token: {oauth_access_token}")
+        self.access_token = oauth_access_token
+
+    @staticmethod
+    def get_manual_oauth_user_login_url(
+        client_id: int = 1,
+        scope: str = "gatey",
+        response_type: str = "token",
+        redirect_uri: str = "https://florgon.space/oauth/blank",
+        oauth_screen_url: str = "https://florgon.space/oauth/authorize",
+    ) -> str:
+        """
+        Returns url for OAuth user login manually.
+        """
+        return f"{oauth_screen_url}?client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&response_type={response_type}"
+
+    @staticmethod
+    def parse_access_token_from_redirect_uri(redirect_uri: str) -> str | None:
+        """
+        Returns token from redirect uri (OAuth) or None if not found there.
+        """
+        url = redirect_uri.split("#token=")
+        return url[1] if len(url) > 1 else None

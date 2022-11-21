@@ -4,11 +4,28 @@
 import json
 from typing import Callable, Any, Union, Optional, Dict
 from gatey_sdk.exceptions import (
+    GateyError,
     GateyTransportError,
     GateyTransportImproperlyConfiguredError,
 )
 from gatey_sdk.api import Api
 from gatey_sdk.auth import Auth
+
+
+def _transport_base_sender_wrapper(func):
+    """
+    Wrapper for transports send event methods that converts result to success state.
+    """
+
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except GateyError:
+            return False
+        else:
+            return True
+
+    return wrapper
 
 
 class BaseTransport:
@@ -20,7 +37,8 @@ class BaseTransport:
     def __init__(self):
         pass
 
-    def send_event(self, event_dict: Dict):
+    @_transport_base_sender_wrapper
+    def send_event(self, event_dict: Dict) -> int:
         """
         Handles transport event callback (handle event sending).
         Should be inherited from BaseTransport and implemented in transports.
@@ -48,6 +66,7 @@ class HttpTransport(BaseTransport):
         self._api_provider = api if api else Api(self._auth_provider)
         self._check_improperly_configured()
 
+    @_transport_base_sender_wrapper
     def send_event(self, event_dict: Dict):
         api_params = self._api_params_from_event_dict(event_dict=event_dict)
         api_response = self._api_provider.method(
@@ -98,6 +117,7 @@ class FuncTransport(BaseTransport):
         BaseTransport.__init__(self)
         self._function = function
 
+    @_transport_base_sender_wrapper
     def send_event(self, event_dict: Dict) -> None:
         """
         Handles transport event callback (handle event sending).

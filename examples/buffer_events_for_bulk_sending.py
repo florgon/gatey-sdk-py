@@ -13,12 +13,19 @@ client = gatey_sdk.Client(
     exceptions_capture_vars=False,
 )
 
-# Will send requests on second.
+# Will send requests on second call.
 client.capture_message("info", "hi!")
 client.capture_message("info", "hi!")
 
+# Will not capture any.
+client.buffer_events_max_capacity = 0
+client.capture_message("info", "hi!")
+client.capture_message("info", "hi!")
+client.force_drop_buffered_events()
+client.bulk_send_buffered_events()
+client.buffer_events_max_capacity = 2
 
-# Will send requests with call.
+# Will send requests with second (send) call.
 client.capture_message("info", "hi!")
 client.bulk_send_buffered_events()
 

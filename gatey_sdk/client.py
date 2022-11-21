@@ -30,7 +30,7 @@ class Client:
     ### Example use:
     ```python
     import gatey_sdk
-    client = gatey_sdk.Client()
+    client = gatey_sdk.Client(...)
     ```
     """
 
@@ -39,12 +39,8 @@ class Client:
     auth = None  # Used for authentication.
     api = None  # Used for sending API HTTP requests.
 
-    # Function that will be called when any exception is excepted.
-    # Used in global exception handler and catch.
-    on_catch_exception_hook = None
-
     # Events data queue that waiting for being sent to server.
-    events_buffer: List[Dict] = []
+    _events_buffer: List[Dict] = []
 
     # Settings.
 
@@ -75,16 +71,16 @@ class Client:
         check_api_auth_on_init: bool = True,
     ):
         """
-        :param transport:
+        :param transport: BaseTransport layer for sending event to the server / whatever else.
         :param global_handler_skip_internal_exceptions:
         :param buffer_events_for_bulk_sending: Will buffer all events (not send immediatly) and will do bulk send when this is required (at exit, or when reached buffer max cap)
         :param buffer_events_max_capacity: Maximal size of buffer to do bulk sending (left 0 for no cap).
         :param handle_global_exceptions: Will catch all exception (use system hook for that).
         :param exceptions_capture_vars: Will capture variable (globals, locals) for all exceptions.
-        :param access_token:
-        :param project_id:
-        :param server_secret:
-        :param client_secret:
+        :param access_token: User access token for calling API as authorized user (not for catching events).
+        :param project_id: ID of the project from Gatey dashboard.
+        :param server_secret: From Gatey dashboard.
+        :param client_secret: From Gatey dashboard.
         :param check_api_auth_on_init: Will do hard auth check at init.
         """
 
@@ -105,28 +101,19 @@ class Client:
         self.buffer_events_for_bulk_sending = buffer_events_for_bulk_sending
         self.buffer_events_max_capacity = buffer_events_max_capacity
 
-        # Default hook event for captured exceptions.
-        self.on_catch_exception_hook = lambda exception: self.capture_exception(
-            exception=exception
-        )
-
         # Check API auth if requested and should.
         # Notice that auth check is not done when you are using custom transports.
         # (even it is default transport)
         if check_api_auth_on_init is True and transport is None:
             self.api.do_hard_auth_check()
 
-        # Register system exception hook,
-        # to handle global exceptions.
+        # Register system hooks.
+        self._bind_system_exit_hook()
         if handle_global_exceptions is True:
             register_system_exception_hook(
-                hook=self.on_catch_exception_hook,
+                hook=self._on_catch_exception_hook,
                 skip_internal_exceptions=global_handler_skip_internal_exceptions,
             )
-
-        # Bulk send buffered events at exit.
-        if self.buffer_events_for_bulk_sending:
-            atexit.register(self.bulk_send_buffered_events)
 
     def catch(
         self,
@@ -151,7 +138,7 @@ class Client:
             on_catch_exception=self.on_catch_exception_hook,
         )
 
-    def capture_event(self, event: Dict, level: str) -> None:
+    def capture_event(self, event: Dict, level: str) -> bool:
         """
         Captures raw event.
         :param event: Raw event dictionary.
@@ -162,18 +149,20 @@ class Client:
         event_dict.update(get_additional_event_data())
 
         # Will buffer or immediatly send event.
-        self._buffer_captured_event(event_dict=event_dict)
+        return self._buffer_captured_event(event_dict=event_dict)
 
-    def capture_message(self, level: str, message: str) -> None:
+    def capture_message(self, level: str, message: str) -> bool:
         """
         Captures message event.
         :param level: String of the level (INFO, DEBUG, etc)
         :param message: Message string.
         """
         event_dict = {"message": message}
-        self.capture_event(event=event_dict, level=level)
+        return self.capture_event(event=event_dict, level=level)
 
-    def capture_exception(self, exception: BaseException, *, _level: str = "ERROR"):
+    def capture_exception(
+        self, exception: BaseException, *, _level: str = "ERROR"
+    ) -> int:
         """
         Captures exception event.
         :param exception: Raw exception.
@@ -185,7 +174,7 @@ class Client:
         event_dict = {"exception": exception_dict}
         if "description" in exception_dict:
             event_dict["message"] = exception_dict["description"]
-        self.capture_event(event=event_dict, level=_level)
+        return self.capture_event(event=event_dict, level=_level)
 
     def bulk_send_buffered_events(self) -> bool:
         """
@@ -194,16 +183,37 @@ class Client:
         """
 
         # Copy buffer and clear it.
-        events_bulk_queue = self.events_buffer.copy()
-        self.events_buffer = []
+        events_bulk_queue = self._events_buffer.copy()
+        self._events_buffer = []
 
         for event_dict in events_bulk_queue:
-            try:
-                self.transport.send_event(event_dict=event_dict)
-            except GateyError:
-                self.events_buffer.append(event_dict)
+            if not self.transport.send_event(event_dict=event_dict):
+                # If failed, pass back.
+                self._events_buffer.append(event_dict)
 
-        return len(self.events_buffer) == 0
+        return len(self._events_buffer) == 0
+
+    def force_drop_buffered_events(self) -> None:
+        """
+        Drops (removes) buffered events explicitly.
+        """
+        self._events_buffer = []
+
+    def _on_catch_exception_hook(self, exception):
+        """
+        Hook that will be called when catched exception.
+        (except via `capture_exception`)
+        """
+        return self.capture_exception(exception=exception)
+
+    def _bind_system_exit_hook(self) -> None:
+        """
+        Binds system hook for exit.
+        """
+
+        # Bulk send buffered events at exit.
+        if self.buffer_events_for_bulk_sending:
+            atexit.register(self.bulk_send_buffered_events)
 
     def _events_buffer_is_full(self) -> bool:
         """
@@ -214,7 +224,7 @@ class Client:
             or self.buffer_events_max_capacity == 0
         ):
             return False
-        return len(self.events_buffer) >= self.buffer_events_max_capacity
+        return len(self._events_buffer) >= self.buffer_events_max_capacity
 
     def _buffer_captured_event(self, event_dict: Dict) -> None:
         """
@@ -226,6 +236,7 @@ class Client:
             return self.transport.send_event(event_dict=event_dict)
 
         # Do buffer and send if required.
-        self.events_buffer.append(event_dict)
+        self._events_buffer.append(event_dict)
         if self._events_buffer_is_full():
-            self.bulk_send_buffered_events()
+            return self.bulk_send_buffered_events()
+        return True

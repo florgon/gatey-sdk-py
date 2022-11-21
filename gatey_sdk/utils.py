@@ -101,7 +101,6 @@ def register_system_exception_hook(
             try:
                 # Try to handle this exception with hook.
                 hook(exception=exception)
-                return
             except (
                 GateyApiError,
                 GateyTransportError,
