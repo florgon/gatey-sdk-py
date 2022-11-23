@@ -58,10 +58,10 @@ class Client:
         transport: Optional[Union[BaseTransport, Callable]] = None,
         # Settings.
         global_handler_skip_internal_exceptions: bool = True,
-        buffer_events_for_bulk_sending: bool = True,
+        buffer_events_for_bulk_sending: bool = False,
         buffer_events_max_capacity: int = 3,
-        handle_global_exceptions: bool = True,
-        exceptions_capture_vars: bool = True,
+        handle_global_exceptions: bool = False,
+        exceptions_capture_vars: bool = False,
         # User auth settings.
         access_token: Optional[str] = None,
         # SDK auth settings.
