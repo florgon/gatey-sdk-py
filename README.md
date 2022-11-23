@@ -45,7 +45,16 @@ try:
     raise ValueError
 except Exception as e:
     client.capture_exception(e)
+
+# Will work by default also (see Client(handle_global_exceptions=True))
+raise ValueError
+
+
+# (Notice that events by default being sent not immediatly!)
 ```
+
+## Examples
+[See examples directory...](/examples)
 
 ## Integrations
 
