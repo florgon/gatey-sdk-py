@@ -151,7 +151,7 @@ class Client:
         # Will buffer or immediatly send event.
         return self._buffer_captured_event(event_dict=event_dict)
 
-    def capture_message(self, level: str, message: str) -> bool:
+    def capture_message(self, message: str, level: str) -> bool:
         """
         Captures message event.
         :param level: String of the level (INFO, DEBUG, etc)

@@ -13,4 +13,4 @@ def print_transport(event):
 
 client = gatey_sdk.Client(transport=print_transport)
 
-client.capture_message("INFO", "My message")
+client.capture_message("My message", level="INFO")
