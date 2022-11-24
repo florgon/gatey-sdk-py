@@ -18,9 +18,12 @@ def _transport_base_sender_wrapper(func):
     """
 
     def wrapper(*args, **kwargs):
+        fail_fast = kwargs.pop("__fail_fast", False)
         try:
             func(*args, **kwargs)
-        except GateyError:
+        except GateyError as internal_exception:
+            if fail_fast:
+                raise internal_exception
             return False
         else:
             return True
@@ -67,12 +70,9 @@ class HttpTransport(BaseTransport):
         self._check_improperly_configured()
 
     @_transport_base_sender_wrapper
-    def send_event(self, event_dict: Dict):
+    def send_event(self, event_dict: Dict) -> None:
         api_params = self._api_params_from_event_dict(event_dict=event_dict)
-        api_response = self._api_provider.method(
-            "event.capture", send_project_auth=True, **api_params
-        )
-        return api_response
+        self._api_provider.method("event.capture", send_project_auth=True, **api_params)
 
     def _api_params_from_event_dict(self, event_dict: Dict):
         api_params = {
@@ -117,18 +117,26 @@ class FuncTransport(BaseTransport):
         BaseTransport.__init__(self)
         self._function = function
 
+    def _reraise_handler(exception: BaseException):
+        raise exception
+
     @_transport_base_sender_wrapper
-    def send_event(self, event_dict: Dict) -> None:
+    def send_event(
+        self, event_dict: Dict, skip_to_internal_exception: bool = False
+    ) -> None:
         """
         Handles transport event callback (handle event sending).
         Function transport just takes event and passed it raw to function call.
         """
-        try:
-            self._function(event_dict)
-        except Exception as transport_exception:
-            raise GateyTransportError(
-                f"Unable to handle event send with Function transport (FuncTransport). Raised exception: {transport_exception}"
-            )
+        if skip_to_internal_exception:
+            try:
+                self._function(event_dict)
+            except Exception as _:
+                raise GateyTransportError(
+                    f"Unable to handle event send with Function transport (FuncTransport)."
+                )
+            return
+        self._function(event_dict)
 
 
 def build_transport_instance(

@@ -11,6 +11,7 @@ class GateyError(Exception):
     Super class for Gatey exceptions.
     """
 
+
 class GateyApiError(GateyError):
     """
     Raised when there is any error with response.
@@ -39,6 +40,7 @@ class GateyApiError(GateyError):
         self.response = response
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
+
 class GateyApiAuthError(GateyError):
     """
     Raised when there is any error in the auth to the API.
@@ -50,6 +52,7 @@ class GateyApiAuthError(GateyError):
         """
         super().__init__(message)
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
+
 
 class GateyTransportError(GateyError):
     """
@@ -65,7 +68,7 @@ class GateyTransportError(GateyError):
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
 
-class GateyTransportImproperlyConfiguredError(GateyError):
+class GateyTransportImproperlyConfiguredError(GateyTransportError):
     """
     Raised when there is any error in the transport configuration.
     For example, raised when no project id or client / server secret.
@@ -77,5 +80,3 @@ class GateyTransportImproperlyConfiguredError(GateyError):
         """
         super().__init__(message)
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
-
-

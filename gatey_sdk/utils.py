@@ -4,8 +4,9 @@
 
 import sys
 import platform
+import tokenize
 
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable, Optional, Tuple, Union
 from types import TracebackType
 
 from gatey_sdk.consts import SDK_INFORMATION_DICT
@@ -204,15 +205,67 @@ def get_trace_from_traceback(traceback: TracebackType) -> List[Dict]:
 
     while traceback is not None:
         # Iterating over traceback with `tb_next`
+        frame = traceback.tb_frame
+        frame_code = getattr(frame, "f_code", None)
+        filename, function = None, None
+        if frame_code:
+            filename = frame.f_code.co_filename
+            function = frame.f_code.co_name
+
+        line_number = traceback.tb_lineno
         trace_element = {
-            "filename": traceback.tb_frame.f_code.co_filename,
-            "name": traceback.tb_frame.f_code.co_name,
-            "line": traceback.tb_lineno,
+            "filename": filename,
+            "name": function or "<unknown>",
+            "line": line_number,
+            "module": frame.f_globals.get("__name__", None),
+            "context": get_context_lines_from_source_code(
+                filename=filename,
+                line_number=line_number,
+                context_lines_count=5,
+            ),
         }
         trace.append(trace_element)
         traceback = traceback.tb_next
 
     return trace
+
+
+def get_context_lines_from_source_code(
+    filename: str, line_number: int, context_lines_count: int = 5
+) -> Dict[str, Union[str, None, List[str]]]:
+    """
+    Returns context lines from source code file.
+    """
+    source_code_lines = get_lines_from_source_code(filename=filename)
+    bounds_start = max(0, line_number - context_lines_count - 1)
+    bounds_end = min(line_number + 1 + context_lines_count, len(source_code_lines))
+
+    strip_line = lambda line: line.strip("\r\n").replace("    ", "\t")
+    context_pre, context_target, context_post = [], None, []
+    try:
+        context_pre = [
+            strip_line(line)
+            for line in source_code_lines[bounds_start : line_number - 1]
+        ]
+        context_target = strip_line(source_code_lines[line_number - 1])
+        context_post = [
+            strip_line(line) for line in source_code_lines[line_number:bounds_end]
+        ]
+    except IndexError:
+        # File was changed?
+        pass
+    return {"pre": context_pre, "target": context_target, "post": context_post}
+
+
+def get_lines_from_source_code(filename: str) -> List[str]:
+    """
+    Returns lines of the code from the source code filename.
+    """
+    try:
+        with tokenize.open(filename=filename) as source_file:
+            return source_file.readlines()
+    except (OSError, IOError):
+        return []
 
 
 def get_platform_event_data() -> Dict:

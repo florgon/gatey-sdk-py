@@ -7,7 +7,6 @@ import atexit
 from typing import Callable, Union, Dict, List, Optional
 
 # Utils.
-from gatey_sdk.exceptions import GateyError
 from gatey_sdk.utils import (
     wrap_in_exception_handler,
     register_system_exception_hook,
@@ -233,7 +232,7 @@ class Client:
 
         # Pass directly if should not buffer.
         if not self.buffer_events_for_bulk_sending:
-            return self.transport.send_event(event_dict=event_dict)
+            return self.transport.send_event(event_dict=event_dict, __fail_fast=True)
 
         # Do buffer and send if required.
         self._events_buffer.append(event_dict)
