@@ -4,7 +4,7 @@
 """
 
 import atexit
-from typing import Callable, Union, Dict, List, Optional
+from typing import Callable, Union, Dict, List, Optional, Any
 
 # Utils.
 from gatey_sdk.utils import (
@@ -20,7 +20,7 @@ from gatey_sdk.auth import Auth
 from gatey_sdk.transport import build_transport_instance, BaseTransport
 
 
-class Client:
+class _Client:
     """
     ## Gatey SDK client.
     Main interface for working with Gatey.
@@ -39,7 +39,7 @@ class Client:
     api = None  # Used for sending API HTTP requests.
 
     # Events data queue that waiting for being sent to server.
-    _events_buffer: List[Dict] = []
+    _events_buffer: List[Dict[str, Any]] = []
 
     # Settings.
 
@@ -47,9 +47,20 @@ class Client:
     # alongside with event data.
     exceptions_capture_vars = True
 
+    # If true, will capture source code lines for exception.
+    exceptions_capture_code_context = True
+
     # Buffering settings for bulk sending.
     buffer_events_for_bulk_sending = None
     buffer_events_max_capacity = 0
+
+    # Include event data.
+    include_runtime_info = True
+    include_platform_info = True
+    include_sdk_info = True
+
+    # Default tags.
+    default_tags_context = dict()
 
     def __init__(
         self,
@@ -60,7 +71,11 @@ class Client:
         buffer_events_for_bulk_sending: bool = False,
         buffer_events_max_capacity: int = 3,
         handle_global_exceptions: bool = False,
+        include_runtime_info: bool = True,
+        include_platform_info: bool = True,
+        include_sdk_info: bool = True,
         exceptions_capture_vars: bool = False,
+        exceptions_capture_code_context: bool = True,
         # User auth settings.
         access_token: Optional[str] = None,
         # SDK auth settings.
@@ -75,7 +90,11 @@ class Client:
         :param buffer_events_for_bulk_sending: Will buffer all events (not send immediatly) and will do bulk send when this is required (at exit, or when reached buffer max cap)
         :param buffer_events_max_capacity: Maximal size of buffer to do bulk sending (left 0 for no cap).
         :param handle_global_exceptions: Will catch all exception (use system hook for that).
+        :param include_runtime_info: If true, will send runtime information.
+        :param include_platform_info: If true will send platform information.
+        :param include_sdk_info: If true will send SDK information.
         :param exceptions_capture_vars: Will capture variable (globals, locals) for all exceptions.
+        :param exceptions_capture_code_context: Will capture source code context (lines).
         :param access_token: User access token for calling API as authorized user (not for catching events).
         :param project_id: ID of the project from Gatey dashboard.
         :param server_secret: From Gatey dashboard.
@@ -97,8 +116,12 @@ class Client:
 
         # Options.
         self.exceptions_capture_vars = exceptions_capture_vars
+        self.exceptions_capture_code_context = exceptions_capture_code_context
         self.buffer_events_for_bulk_sending = buffer_events_for_bulk_sending
         self.buffer_events_max_capacity = buffer_events_max_capacity
+        self.include_runtime_info = include_runtime_info
+        self.include_platform_info = include_platform_info
+        self.include_sdk_info = include_sdk_info
 
         # Check API auth if requested and should.
         # Notice that auth check is not done when you are using custom transports.
@@ -137,43 +160,109 @@ class Client:
             on_catch_exception=self.on_catch_exception_hook,
         )
 
-    def capture_event(self, event: Dict, level: str) -> bool:
+    def capture_event(
+        self,
+        event: Dict,
+        level: str,
+        tags: Optional[Dict[str, str]],
+        include_default_tags: bool = True,
+    ) -> bool:
         """
-        Captures raw event.
-        :param event: Raw event dictionary.
+        Captures raw event data and passes it to the transport.
+        You should not use this function directly, please use `capture_message` or `capture_exception`!
+        This function is used as low-level call to capture all events.
+
+        :param event: Raw event dictionary that will be updated with base event data (including tags).
         :param level: Level of the event.
+        :param tags: Dictionary of the tags (string-string).
+        :param include_default_tags: If false, will force to not pass default tags context of the client to the event.
         """
-        event_dict = event
-        event_dict.update({"level": level})
-        event_dict.update(get_additional_event_data())
+        if tags is None or not isinstance(tags, Dict):
+            tags = {}
+
+        if not isinstance(level, str):
+            raise TypeError("Level of the event should be always string!")
+        if not isinstance(event, Dict):
+            raise TypeError("Event data should be Dict!")
+
+        # Include default tags if requred.
+        tags.update(self.default_tags_context if include_default_tags else {})
+
+        # Build event data.
+        event_dict = event.copy()
+        event_dict["tags"] = tags
+        event_dict["level"] = level.lower()
+        event_dict.update(
+            get_additional_event_data(
+                include_runtime_info=self.include_runtime_info,
+                include_platform_info=self.include_runtime_info,
+                include_sdk_info=self.include_sdk_info,
+            )
+        )
 
         # Will buffer or immediatly send event.
         return self._buffer_captured_event(event_dict=event_dict)
 
-    def capture_message(self, message: str, level: str) -> bool:
+    def capture_message(
+        self,
+        message: str,
+        level: str,
+        *,
+        tags: Optional[Dict[str, str]],
+        include_default_tags: bool = True,
+    ) -> bool:
         """
         Captures message event.
         :param level: String of the level (INFO, DEBUG, etc)
         :param message: Message string.
+        :param tags: Dictionary of the tags (string-string).
+        :param include_default_tags: If false, will force to not pass default tags context of the client to the event.
         """
         event_dict = {"message": message}
-        return self.capture_event(event=event_dict, level=level)
+        return self.capture_event(
+            event=event_dict,
+            level=level,
+            tags=tags,
+            include_default_tags=include_default_tags,
+        )
 
     def capture_exception(
-        self, exception: BaseException, *, _level: str = "ERROR"
+        self,
+        exception: BaseException,
+        *,
+        level: str = "error",
+        tags: Optional[Dict[str, str]] = None,
+        include_default_tags: bool = True,
     ) -> int:
         """
         Captures exception event.
         :param exception: Raw exception.
-        :param _level: Level of the event that will be sent.
+        :param level: Level of the event that will be sent.
+        :param tags: Dictionary of the tags (string-string).
+        :param include_default_tags: If false, will force to not pass default tags context of the client to the event.
         """
         exception_dict = event_dict_from_exception(
-            exception=exception, skip_vars=not self.exceptions_capture_vars
+            exception=exception,
+            skip_vars=not self.exceptions_capture_vars,
+            include_code_context=self.exceptions_capture_code_context,
         )
         event_dict = {"exception": exception_dict}
         if "description" in exception_dict:
             event_dict["message"] = exception_dict["description"]
-        return self.capture_event(event=event_dict, level=_level)
+        return self.capture_event(
+            event=event_dict,
+            level=level,
+            tags=tags,
+            include_default_tags=include_default_tags,
+        )
+
+    def update_default_tag(self, tag_name: str, tag_value: str) -> None:
+        """
+        Updates default value for tag.
+        """
+        if not isinstance(tag_value, str) or not isinstance(tag_name, str):
+            raise TypeError("Tag name and value should be strings!")
+        self.default_tags_context[tag_name] = tag_value
 
     def bulk_send_buffered_events(self) -> bool:
         """
@@ -189,7 +278,6 @@ class Client:
             if not self.transport.send_event(event_dict=event_dict):
                 # If failed, pass back.
                 self._events_buffer.append(event_dict)
-
         return len(self._events_buffer) == 0
 
     def force_drop_buffered_events(self) -> None:

@@ -6,7 +6,7 @@ import sys
 import platform
 import tokenize
 
-from typing import Dict, List, Callable, Optional, Tuple, Union
+from typing import Dict, List, Callable, Optional, Union
 from types import TracebackType
 
 from gatey_sdk.consts import SDK_INFORMATION_DICT
@@ -131,7 +131,9 @@ def exception_is_ignored(
     return False
 
 
-def event_dict_from_exception(exception: BaseException, skip_vars: bool = True) -> Dict:
+def event_dict_from_exception(
+    exception: BaseException, skip_vars: bool = True, include_code_context: bool = True
+) -> Dict:
     """
     Returns event dictionary of the event (field) from the raw exception.
     Fetches all required information about system, exception.
@@ -144,7 +146,9 @@ def event_dict_from_exception(exception: BaseException, skip_vars: bool = True) 
     traceback_vars = get_variables_from_traceback(
         traceback=exception_traceback, _always_skip=skip_vars
     )
-    traceback_trace = get_trace_from_traceback(exception_traceback)
+    traceback_trace = get_trace_from_traceback(
+        exception_traceback, include_code_context=include_code_context
+    )
 
     # Get exception type ("BaseException", "ValueError").
     exception_type = get_exception_type_name(exception)
@@ -152,7 +156,7 @@ def event_dict_from_exception(exception: BaseException, skip_vars: bool = True) 
     event_dict = {
         "class": exception_type,
         "description": exception_description,
-        "vars": traceback_vars,
+        "vars": traceback_vars,  # Will be migrated to the traceback context later.
         "traceback": traceback_trace,
     }
     return event_dict
@@ -165,13 +169,17 @@ def get_exception_type_name(exception: BaseException) -> str:
     return getattr(type(exception), "__name__", "NoneException")
 
 
-def get_additional_event_data() -> Dict:
+def get_additional_event_data(
+    include_platform_info: bool = True,
+    include_runtime_info: bool = True,
+    include_sdk_info: bool = True,
+) -> Dict:
     """
     Returns additional event dictionary with event information such as SDK information, platform information etc.
     """
-    sdk_information = SDK_INFORMATION_DICT
-    platform_information = get_platform_event_data()
-    runtime_information = get_runtime_event_data()
+    sdk_information = SDK_INFORMATION_DICT if include_sdk_info else {}
+    platform_information = get_platform_event_data() if include_platform_info else {}
+    runtime_information = get_runtime_event_data() if include_runtime_info else {}
     additional_event_data = {
         "sdk": sdk_information,
         "platform": platform_information,
@@ -196,7 +204,12 @@ def remove_trailing_slash(url: str) -> str:
     return url
 
 
-def get_trace_from_traceback(traceback: TracebackType) -> List[Dict]:
+def get_trace_from_traceback(
+    traceback: TracebackType,
+    include_code_context: bool = True,
+    code_context_lines_count: int = 5,
+    code_context_only_for_tail: bool = True,
+) -> List[Dict]:
     """
     Returns trace from the given traceback.
     """
@@ -218,14 +231,27 @@ def get_trace_from_traceback(traceback: TracebackType) -> List[Dict]:
             "name": function or "<unknown>",
             "line": line_number,
             "module": frame.f_globals.get("__name__", None),
-            "context": get_context_lines_from_source_code(
-                filename=filename,
-                line_number=line_number,
-                context_lines_count=5,
-            ),
         }
+
+        if include_code_context and not code_context_only_for_tail:
+            trace_element |= {
+                "context": get_context_lines_from_source_code(
+                    filename=filename,
+                    line_number=line_number,
+                    context_lines_count=code_context_lines_count,
+                )
+            }
+
         trace.append(trace_element)
         traceback = traceback.tb_next
+
+    if include_code_context and code_context_only_for_tail:
+        tail_trace = trace[-1]
+        tail_trace["context"] = get_context_lines_from_source_code(
+            filename=tail_trace["filename"],
+            line_number=tail_trace["line"],
+            context_lines_count=5,
+        )
 
     return trace
 
@@ -272,6 +298,9 @@ def get_platform_event_data() -> Dict:
     """
     Returns platform information for event data.
     """
+
+    # This code will be mirated to tags system later.
+
     platform_os = platform.system()
     platform_network_name = platform.node()
     platform_event_data = {
