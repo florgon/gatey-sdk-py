@@ -327,3 +327,5 @@ class _Client:
         if self._events_buffer_is_full():
             return self.bulk_send_buffered_events()
         return True
+
+Client = _Client
