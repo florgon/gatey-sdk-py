@@ -208,7 +208,7 @@ class _Client:
         message: str,
         level: str,
         *,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[Dict[str, str]] = None,
         include_default_tags: bool = True,
     ) -> bool:
         """
@@ -233,7 +233,7 @@ class _Client:
         level: str = "error",
         tags: Optional[Dict[str, str]] = None,
         include_default_tags: bool = True,
-    ) -> int:
+    ) -> bool:
         """
         Captures exception event.
         :param exception: Raw exception.
@@ -313,7 +313,7 @@ class _Client:
             return False
         return len(self._events_buffer) >= self.buffer_events_max_capacity
 
-    def _buffer_captured_event(self, event_dict: Dict) -> None:
+    def _buffer_captured_event(self, event_dict: Dict) -> bool:
         """
         Buffers captured event for bulk sending later.
         """
@@ -327,5 +327,6 @@ class _Client:
         if self._events_buffer_is_full():
             return self.bulk_send_buffered_events()
         return True
+
 
 Client = _Client

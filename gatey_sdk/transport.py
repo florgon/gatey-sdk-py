@@ -17,7 +17,7 @@ def _transport_base_sender_wrapper(func):
     Wrapper for transports send event methods that converts result to success state.
     """
 
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> bool:
         fail_fast = kwargs.pop("__fail_fast", False)
         try:
             func(*args, **kwargs)
@@ -41,7 +41,7 @@ class BaseTransport:
         pass
 
     @_transport_base_sender_wrapper
-    def send_event(self, event_dict: Dict) -> int:
+    def send_event(self, event_dict: Dict) -> None:
         """
         Handles transport event callback (handle event sending).
         Should be inherited from BaseTransport and implemented in transports.
