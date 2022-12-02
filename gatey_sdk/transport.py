@@ -79,7 +79,7 @@ class HttpTransport(BaseTransport):
             "level": event_dict["level"],
         }
 
-        event_params = ["exception", "message"]
+        event_params = ["exception", "message", "tags"]
         system_params = ["platform", "runtime", "sdk"]
 
         for param in event_params + system_params:

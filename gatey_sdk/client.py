@@ -164,7 +164,7 @@ class _Client:
         self,
         event: Dict,
         level: str,
-        tags: Optional[Dict[str, str]],
+        tags: Optional[Dict[str, str]] = None,
         include_default_tags: bool = True,
     ) -> bool:
         """
@@ -178,7 +178,7 @@ class _Client:
         :param include_default_tags: If false, will force to not pass default tags context of the client to the event.
         """
         if tags is None or not isinstance(tags, Dict):
-            tags = {}
+            tags = dict()
 
         if not isinstance(level, str):
             raise TypeError("Level of the event should be always string!")
