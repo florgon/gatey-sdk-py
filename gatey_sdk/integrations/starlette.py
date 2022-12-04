@@ -66,15 +66,13 @@ class GateyStarletteMiddleware:
         )
 
         # Hooks.
-        self.pre_capture_hook = (
-            pre_capture_hook if pre_capture_hook else self._default_void_hook
-        )
-        self.post_capture_hook = (
-            post_capture_hook if post_capture_hook else self._default_void_hook
-        )
-        self.on_request_hook = (
-            on_request_hook if on_request_hook else self._default_void_hook
-        )
+        hooks = {
+            "pre_capture_hook": pre_capture_hook,
+            "post_capture_hook": post_capture_hook,
+            "on_request_hook": on_request_hook,
+        }
+        for name, hook in hooks.items():
+            setattr(self, name, hook or self._default_void_hook)
 
         self.gatey_client = self.client_getter()
         if not isinstance(self.gatey_client, Client):
