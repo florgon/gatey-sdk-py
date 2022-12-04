@@ -11,7 +11,7 @@ from gatey_sdk.utils import (
     wrap_in_exception_handler,
     register_system_exception_hook,
     event_dict_from_exception,
-    get_additional_event_data,
+    get_additional_event_tags,
 )
 
 # Components.
@@ -123,6 +123,11 @@ class _Client:
         self.include_platform_info = include_platform_info
         self.include_sdk_info = include_sdk_info
 
+        # Tags like platform, sdk, etc.
+        self.default_tags_context = self._build_default_tags_context(
+            foreign_tags=dict()
+        )
+
         # Check API auth if requested and should.
         # Notice that auth check is not done when you are using custom transports.
         # (even it is default transport)
@@ -192,13 +197,6 @@ class _Client:
         event_dict = event.copy()
         event_dict["tags"] = tags
         event_dict["level"] = level.lower()
-        event_dict.update(
-            get_additional_event_data(
-                include_runtime_info=self.include_runtime_info,
-                include_platform_info=self.include_runtime_info,
-                include_sdk_info=self.include_sdk_info,
-            )
-        )
 
         # Will buffer or immediatly send event.
         return self._buffer_captured_event(event_dict=event_dict)
@@ -206,7 +204,7 @@ class _Client:
     def capture_message(
         self,
         message: str,
-        level: str,
+        level: str = "info",
         *,
         tags: Optional[Dict[str, str]] = None,
         include_default_tags: bool = True,
@@ -285,6 +283,21 @@ class _Client:
         Drops (removes) buffered events explicitly.
         """
         self._events_buffer = []
+
+    def _build_default_tags_context(
+        self, foreign_tags: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Returns default tags dict (context).
+        """
+        default_tags = dict()
+        default_tags = get_additional_event_tags(
+            include_runtime_info=self.include_runtime_info,
+            include_platform_info=self.include_runtime_info,
+            include_sdk_info=self.include_sdk_info,
+        )
+        default_tags.update(foreign_tags)
+        return default_tags
 
     def _on_catch_exception_hook(self, exception):
         """

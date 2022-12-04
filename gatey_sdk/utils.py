@@ -6,7 +6,7 @@ import sys
 import platform
 import tokenize
 
-from typing import Dict, List, Callable, Optional, Union
+from typing import Any, Dict, List, Callable, Optional, Union
 from types import TracebackType
 
 from gatey_sdk.consts import SDK_INFORMATION_DICT
@@ -169,23 +169,22 @@ def get_exception_type_name(exception: BaseException) -> str:
     return getattr(type(exception), "__name__", "NoneException")
 
 
-def get_additional_event_data(
+def get_additional_event_tags(
     include_platform_info: bool = True,
     include_runtime_info: bool = True,
     include_sdk_info: bool = True,
-) -> Dict:
+) -> Dict[str, Any]:
     """
-    Returns additional event dictionary with event information such as SDK information, platform information etc.
+    Returns additional event dictionary for tags with event information such as SDK information, platform information etc.
     """
-    sdk_information = SDK_INFORMATION_DICT if include_sdk_info else {}
-    platform_information = get_platform_event_data() if include_platform_info else {}
-    runtime_information = get_runtime_event_data() if include_runtime_info else {}
-    additional_event_data = {
-        "sdk": sdk_information,
-        "platform": platform_information,
-        "runtime": runtime_information,
-    }
-    return additional_event_data
+    additional_event_tags = dict()
+    if include_sdk_info:
+        additional_event_tags.update(SDK_INFORMATION_DICT)
+    if include_platform_info:
+        additional_event_tags.update(get_platform_event_tags())
+    if include_runtime_info:
+        additional_event_tags.update(get_runtime_event_tags())
+    return additional_event_tags
 
 
 def remove_trailing_slash(url: str) -> str:
@@ -294,59 +293,34 @@ def get_lines_from_source_code(filename: str) -> List[str]:
         return []
 
 
-def get_platform_event_data() -> Dict:
+def get_platform_event_tags() -> Dict[str, Any]:
     """
-    Returns platform information for event data.
+    Returns platform information for event data tags.
     """
-
-    # This code will be mirated to tags system later.
 
     platform_os = platform.system()
     platform_network_name = platform.node()
-    platform_event_data = {
+    platform_event_data_tags = {
         "os": platform_os,
-        "node": platform_network_name,
-        "version": platform.version(),  # For major there is `platform.release()`
-        "arch": {
-            "bits": platform.architecture()[0],
-            "linkage": platform.architecture()[1],
-        },
-        "processor": platform.processor(),
-        "machine": platform.machine(),
-        "platform": platform.platform(terse=False),
+        "os.node": platform_network_name,
+        "os.version": platform.version(),  # For major there is `platform.release()`
+        "os.bits": platform.architecture()[0],
     }
-    if platform_os == "Windows":
-        # This is only for Windows.
-        # (but there is also more same specific stuff for other operating system).
-        # Also this is for now will not be handled by API.
-        platform_event_data.update(
-            {
-                "os.win32.ver": platform.win32_ver(),
-                "os.win32.edition": platform.win32_edition(),
-                "os.win32.is_iot": platform.win32_is_iot(),
-            }
-        )
 
-    return platform_event_data
+    return platform_event_data_tags
 
 
-def get_runtime_event_data() -> Dict:
+def get_runtime_event_tags() -> Dict:
     """
-    Returns runtime information for event data.
+    Returns runtime information event data tags.
     """
     runtime_name = RUNTIME_NAME
     runtime_version = sys.version_info
     runtime_version = f"{runtime_version[0]}.{runtime_version[1]}.{runtime_version[2]}-{runtime_version[3]}-{runtime_version[4]}"
-    runtime_build = platform.python_build()
-    runtime_build = f"{runtime_build[0]}.{runtime_build[1]}"
     return {
-        "name": runtime_name,
-        "version": runtime_version,
-        "build": runtime_build,
-        "compiler": platform.python_compiler(),
-        "branch": platform.python_branch(),
-        "implementation": platform.python_implementation(),
-        "revision": platform.python_revision(),
+        "runtime.name": runtime_name,
+        "runtime.ver": runtime_version,
+        "runtime.impl": platform.python_implementation(),
     }
 
 

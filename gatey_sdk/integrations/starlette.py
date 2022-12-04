@@ -30,6 +30,7 @@ class GateyStarletteMiddleware:
     client_getter: ClientGetterCallable
     capture_reraise_after: bool = True
     capture_requests_info: bool = False
+    capture_requests_info_additional_tags: Dict[str, str] = dict()
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class GateyStarletteMiddleware:
         pre_capture_hook: Optional[HookCallable] = None,
         post_capture_hook: Optional[HookCallable] = None,
         on_request_hook: Optional[HookCallable] = None,
+        capture_requests_info_additional_tags: Optional[Dict[str, str]] = None,
     ) -> None:
         self.starlette_app = app
         self.gatey_client = client  # Redefined below by `client_getter`.
@@ -53,6 +55,11 @@ class GateyStarletteMiddleware:
             capture_exception_options
             if capture_exception_options
             else self.capture_exception_options
+        )
+        self.capture_requests_info_additional_tags = (
+            capture_requests_info_additional_tags
+            if capture_requests_info_additional_tags
+            else dict()
         )
         self.client_getter = (
             client_getter if client_getter else self._default_client_getter
@@ -107,14 +114,37 @@ class GateyStarletteMiddleware:
             if client and isinstance(client, Client):
                 await self.pre_capture_hook(self, *app_args)
 
+                capture_options = self.capture_exception_options.copy()
+                if "tags" not in self.capture_exception_options:
+                    capture_options["tags"] = self._get_request_tags_from_scope(
+                        scope=scope
+                    )
+
                 client.capture_exception(
-                    _starlette_app_exception, **self.capture_exception_options
+                    _starlette_app_exception, **self.capture_options
                 )
 
                 await self.post_capture_hook(self, *app_args)
 
             if self.capture_reraise_after:
                 raise _starlette_app_exception
+
+    async def _get_request_tags_from_scope(self, scope: Scope) -> Dict[str, str]:
+        """
+        Returns tags for request from request scope.
+        """
+        query, path, method = (
+            scope.get("query_string", b"").decode("UTF-8"),
+            scope.get("path", ""),
+            scope.get("method", "UNKNOWN"),
+        )
+        return {
+            "query": query,
+            "path": path,
+            "method": method,
+            "client_host": self._get_client_host_from_scope(scope),
+            "server_host": ":".join(map(str, scope["server"])),
+        }
 
     async def _capture_request_info(self, scope: Scope, *_) -> None:
         """
@@ -123,19 +153,12 @@ class GateyStarletteMiddleware:
         client = self.client_getter()
         if not client:
             return
-        query, path, method = (
-            scope.get("query_string", b"").decode("UTF-8"),
-            scope.get("path", ""),
-            scope.get("method", "UNKNOWN"),
-        )
-        message = f"{method} '{path}?{query}' <>"
-        message = message if message else "Request was handled."
-        tags = {
-            "query": query,
-            "path": path,
-            "method": method,
-            "client_host": self._get_client_host_from_scope(scope),
-        }
+
+        tags = self._get_request_tags_from_scope(scope=scope)
+        message = f"{tags['method']} '{tags['path']}'"
+        message = message if message != " ''" else "Request was handled."
+        tags.update(self.capture_requests_info_additional_tags)
+
         client.capture_message(
             message,
             level="debug",

@@ -80,9 +80,8 @@ class HttpTransport(BaseTransport):
         }
 
         event_params = ["exception", "message", "tags"]
-        system_params = ["platform", "runtime", "sdk"]
 
-        for param in event_params + system_params:
+        for param in event_params:
             if param in event_dict:
                 api_params[param] = json.dumps(event_dict[param])
 
