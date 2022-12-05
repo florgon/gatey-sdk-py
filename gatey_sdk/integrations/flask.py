@@ -1,26 +1,22 @@
 """
-    Starlette integration(s).
+    Flask integration(s).
 """
 
-from typing import Callable, Dict, Any, Optional, Awaitable
-
-from starlette.types import ASGIApp, Receive, Scope, Send
-from starlette.datastructures import Headers
-
+from typing import Callable, Dict, Any, Optional
+from werkzeug.wrappers import Request, Response
+from flask import abort
 from gatey_sdk.client import Client
 
 # Type aliases for callables.
-HookCallable = Callable[
-    ["GateyStarletteMiddleware", Scope, Receive, Send], Awaitable[None]
-]
+HookCallable = Callable[["GateyFlaskMiddleware", Dict, Callable], None]
 ClientGetterCallable = Callable[[], Client]
 
 
-class GateyStarletteMiddleware:
+class GateyFlaskMiddleware:
     """Gatey SDK Starlette middleware."""
 
     # Requirements.
-    starlette_app: ASGIApp
+    flask_app: Callable[[Dict, Callable], Any]
     gatey_client: Client
 
     # Gatey options.
@@ -28,28 +24,25 @@ class GateyStarletteMiddleware:
     pre_capture_hook: HookCallable
     post_capture_hook: HookCallable
     client_getter: ClientGetterCallable
-    capture_reraise_after: bool = True
     capture_requests_info: bool = False
     capture_requests_info_additional_tags: Dict[str, str] = dict()
 
     def __init__(
         self,
-        app: ASGIApp,
+        app,
         client: Client | None = None,
         *,
         capture_requests_info: bool = False,
         client_getter: Optional[ClientGetterCallable] = None,
         capture_exception_options: Optional[Dict[str, Any]] = None,
-        capture_reraise_after: bool = True,
         pre_capture_hook: Optional[HookCallable] = None,
         post_capture_hook: Optional[HookCallable] = None,
         on_request_hook: Optional[HookCallable] = None,
         capture_requests_info_additional_tags: Optional[Dict[str, str]] = None,
     ) -> None:
-        self.starlette_app = app
+        self.flask_app = app
         self.gatey_client = client  # Redefined below by `client_getter`.
 
-        self.capture_reraise_after = capture_reraise_after
         self.capture_requests_info = capture_requests_info
         self.capture_exception_options = (
             capture_exception_options
@@ -80,69 +73,57 @@ class GateyStarletteMiddleware:
                 "Gatey client is invalid! Please review `client` param or review your client getter!"
             )
 
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+    def __call__(self, environ: Dict, start_response: Callable) -> None:
         """
         Middleware itself (handle request).
         """
-        if scope["type"] != "http":
-            # Skip non-requests (like, lifespan event).
-            # Do not have there `simple_response`.
-            await self.starlette_app(scope, receive, send)
-            return
-        await self._execute_app_wrapped(scope, receive, send)
+        return self._execute_app_wrapped(environ, start_response)
 
-    async def _execute_app_wrapped(
-        self, scope: Scope, receive: Receive, send: Send
-    ) -> None:
+    def _execute_app_wrapped(self, environ: Dict, start_response: Callable) -> Any:
         """
         Executes app wrapped with middleware.
         """
-        app_args = [scope, receive, send]
+        app_args = [environ, start_response]
 
         if self.on_request_hook:
-            await self.on_request_hook(self, *app_args)
+            self.on_request_hook(self, *app_args)
 
         if self.capture_requests_info:
-            await self._capture_request_info(*app_args)
+            self._capture_request_info(environ=environ)
 
         try:
-            await self.starlette_app(*app_args)
-        except Exception as _starlette_app_exception:
+            return self.flask_app(*app_args)
+        except Exception as _flask_app_exception:
             client = self.client_getter()
             if client and isinstance(client, Client):
-                await self.pre_capture_hook(self, *app_args)
+                self.pre_capture_hook(self, *app_args)
 
                 capture_options = self.capture_exception_options.copy()
                 if "tags" not in capture_options:
-                    capture_options["tags"] = self._get_request_tags_from_scope(
-                        scope=scope
+                    capture_options["tags"] = self._get_request_tags_from_environ(
+                        environ=environ
                     )
 
-                client.capture_exception(_starlette_app_exception, **capture_options)
+                client.capture_exception(_flask_app_exception, **capture_options)
 
-                await self.post_capture_hook(self, *app_args)
+                self.post_capture_hook(self, *app_args)
+            abort(500)
 
-            if self.capture_reraise_after:
-                raise _starlette_app_exception
-
-    async def _get_request_tags_from_scope(self, scope: Scope) -> Dict[str, str]:
+    def _get_request_tags_from_environ(self, environ: Dict) -> Dict[str, str]:
         """
-        Returns tags for request from request scope.
+        Returns tags for request from request environ.
         """
-        query, path, method = (
-            scope.get("query_string", b"").decode("UTF-8"),
-            scope.get("path", ""),
-            scope.get("method", "UNKNOWN"),
-        )
+        request = Request(environ)
         return {
-            "query": query,
-            "path": path,
-            "method": method,
-            "client_host": self._get_client_host_from_scope(scope),
-            "server_host": ":".join(map(str, scope["server"])),
+            "query": request.query_string.decode("utf-8"),
+            "path": request.root_path + request.path,
+            "scheme": request.scheme,
+            "method": request.method,
+            "client_host": request.remote_addr,
+            "server_host": ":".join(map(str, request.server)),
         }
 
-    async def _capture_request_info(self, scope: Scope, *_) -> None:
+    def _capture_request_info(self, environ: Dict) -> None:
         """
         Captures request info as message to the client.
         """
@@ -150,7 +131,7 @@ class GateyStarletteMiddleware:
         if not client:
             return
 
-        tags = self._get_request_tags_from_scope(scope=scope)
+        tags = self._get_request_tags_from_environ(environ=environ)
         message = f"{tags['method']} '{tags['path']}'"
         message = message if message != " ''" else "Request was handled."
         tags.update(self.capture_requests_info_additional_tags)
@@ -167,16 +148,8 @@ class GateyStarletteMiddleware:
         """
         return self.gatey_client
 
-    async def _default_void_hook(*_) -> None:
+    def _default_void_hook(*_) -> None:
         """
         Default hook for pre/post capture, just does nohing.
         """
         return None
-
-    @staticmethod
-    def _get_client_host_from_scope(scope: Scope) -> str:
-        """Returns client host (IP) from passed scope, if it is forwarded, queries correct host."""
-        header_x_forwarded_for = Headers(scope=scope).get("X-Forwarded-For")
-        if header_x_forwarded_for:
-            return header_x_forwarded_for.split(",")[0]
-        return scope["client"][0]
