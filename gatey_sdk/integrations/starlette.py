@@ -125,7 +125,7 @@ class GateyStarletteMiddleware:
             if self.capture_reraise_after:
                 raise _starlette_app_exception
 
-    async def _get_request_tags_from_scope(self, scope: Scope) -> Dict[str, str]:
+    def _get_request_tags_from_scope(self, scope: Scope) -> Dict[str, str]:
         """
         Returns tags for request from request scope.
         """
