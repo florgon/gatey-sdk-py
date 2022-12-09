@@ -10,11 +10,14 @@ from typing import Callable, Union, Dict, List, Optional, Any
 
 # Utils.
 from gatey_sdk.utils import (
+    get_additional_event_tags,
+)
+from gatey_sdk.internal.exc import (
     wrap_in_exception_handler,
     register_system_exception_hook,
     event_dict_from_exception,
-    get_additional_event_tags,
 )
+
 
 # Components.
 from gatey_sdk.api import Api

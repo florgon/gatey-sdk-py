@@ -18,4 +18,4 @@ client = gatey_sdk.Client(transport=print_transport)
 try:
     raise ValueError("Message text!")
 except Exception as e:
-    client.capture_exception(e, _level="ERROR")
+    client.capture_exception(e, level="error")

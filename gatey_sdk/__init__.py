@@ -46,14 +46,12 @@ from gatey_sdk.exceptions import GateyApiError, GateyTransportError
 from gatey_sdk.api import Api
 from gatey_sdk.response import Response
 from gatey_sdk.transport import BaseTransport, HttpTransport, FuncTransport
-from gatey_sdk import utils
 
 
 __all__ = [
     "Client",
     "Response",
     "Api",
-    "utils",
     "BaseTransport",
     "HttpTransport",
     "FuncTransport",
