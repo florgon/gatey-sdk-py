@@ -1,23 +1,13 @@
-import json
 import gatey_sdk
 
-
-def print_transport(event):
-    json_string = json.dumps(
-        event,
-        indent=2,
-        sort_keys=True,
-    )
-    print(json_string)
-
-
 client = gatey_sdk.Client(
-    transport=print_transport,
+    transport=gatey_sdk.PrintTransport,
     buffer_events_for_bulk_sending=False,
 )
 
 event_dict = {"message": "text", "some_injected_field": "injected"}
-# client.capture_event(event_dict, level="required")
+
+client.capture_event(event_dict, level="required")
 
 print("---- ")
 

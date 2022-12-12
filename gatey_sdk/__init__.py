@@ -45,7 +45,13 @@ from gatey_sdk.exceptions import GateyApiError, GateyTransportError
 # Additional API.
 from gatey_sdk.api import Api
 from gatey_sdk.response import Response
-from gatey_sdk.transport import BaseTransport, HttpTransport, FuncTransport
+from gatey_sdk.transport import (
+    BaseTransport,
+    HttpTransport,
+    FuncTransport,
+    VoidTransport,
+    PrintTransport,
+)
 
 
 __all__ = [
@@ -55,6 +61,8 @@ __all__ = [
     "BaseTransport",
     "HttpTransport",
     "FuncTransport",
+    "VoidTransport",
+    "PrintTransport",
     "GateyApiError",
     "GateyTransportError",
 ]

@@ -109,15 +109,12 @@ class FuncTransport(BaseTransport):
     Function transport. Calls your function when event sends.
     """
 
-    def __init__(self, function: Callable):
+    def __init__(self, func: Callable):
         """
         :param function: Function to call when event sends.
         """
         BaseTransport.__init__(self)
-        self._function = function
-
-    def _reraise_handler(exception: BaseException):
-        raise exception
+        self._function = func
 
     @_transport_base_sender_wrapper
     def send_event(
@@ -138,6 +135,57 @@ class FuncTransport(BaseTransport):
         self._function(event_dict)
 
 
+class VoidTransport(BaseTransport):
+    """
+    Void transport. Does nothing, used as test environment.
+    """
+
+    @_transport_base_sender_wrapper
+    def send_event(self, *args, **kwargs) -> None:
+        """
+        Handles transport event callback (handle event sending).
+        Does nothing.
+        """
+        pass
+
+
+class PrintTransport(BaseTransport):
+    """
+    Print transport. Prints event data, used ONLY as test environment.
+    """
+
+    def __init__(
+        self,
+        indent: int | str | None = 2,
+        prepare_event: Callable[[Dict], Dict] | None = None,
+        print_function: Callable[[Dict], Any] | None = None,
+    ):
+        """
+        :param function: Function to call when event sends.
+        """
+        BaseTransport.__init__(self)
+        self._indent = indent
+        self._prepare_event = prepare_event if prepare_event else lambda e: e
+        self._print_function = print_function if print_function else print
+
+    @_transport_base_sender_wrapper
+    def send_event(self, event_dict: Dict) -> None:
+        """
+        Handles transport event callback (handle event sending).
+        Print event data.
+        """
+        dump_data = (
+            self._prepare_event(event_dict) if self._prepare_event else event_dict
+        )
+        print(
+            json.dumps(
+                dump_data,
+                indent=self._indent,
+                sort_keys=True,
+            )
+        )
+
+
 def build_transport_instance(
     transport_argument: Any = None,
     api: Optional[Api] = None,
@@ -155,10 +203,21 @@ def build_transport_instance(
     if isinstance(transport_argument, type) and issubclass(
         transport_argument, BaseTransport
     ):
-        # Passed subclass of BaseTransport as transport.
+        # Passed subclass (type) of BaseTransport as transport.
         # Should be instantiated as cls.
         transport_class = transport_argument
-        return transport_class(api=api, auth=auth)
+        if transport_class in (VoidTransport, PrintTransport):
+            return transport_class()
+        try:
+            return transport_class(api=api, auth=auth)
+        except TypeError as _transport_params_error:
+            raise GateyTransportImproperlyConfiguredError(
+                "Failed to build transport instance. Please instantiate before or except your transport to handle `api`, `auth` params in constructor!"
+            ) from _transport_params_error
+
+    if isinstance(transport_argument, BaseTransport):
+        # Passed already constructed transport, should do nothing.
+        return transport_argument
 
     if callable(transport_argument):
         # Passed callable (function) as transport.

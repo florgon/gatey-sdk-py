@@ -1,18 +1,6 @@
-import json
 from flask import Flask
 from gatey_sdk.integrations.flask import GateyFlaskMiddleware
-from gatey_sdk import Client
-
-
-def print_transport(event):
-    if "exception" in event:
-        event["exception"].pop("traceback")
-    json_string = json.dumps(
-        event,
-        indent=2,
-        sort_keys=True,
-    )
-    print(json_string)
+from gatey_sdk import Client, PrintTransport
 
 
 # Notice that hooks and transport print may differs because transport is not intended with middleware hooks.
@@ -31,7 +19,9 @@ def on_request_hook(*_):
 app = Flask(__name__)
 
 client = Client(
-    transport=print_transport,
+    transport=PrintTransport(
+        prepare_event=lambda e: (e, e.get("exception", {}).pop("traceback", None))[0]
+    ),
     include_platform_info=False,
     include_runtime_info=False,
     include_sdk_info=False,

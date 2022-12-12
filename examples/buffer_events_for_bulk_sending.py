@@ -1,12 +1,8 @@
 import gatey_sdk
 
 
-def print_transport(event):
-    print(event["message"])
-
-
 client = gatey_sdk.Client(
-    transport=print_transport,
+    transport=gatey_sdk.PrintTransport(prepare_event=lambda e: e["message"]),
     handle_global_exceptions=False,
     buffer_events_for_bulk_sending=True,
     buffer_events_max_capacity=2,

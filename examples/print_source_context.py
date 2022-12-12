@@ -1,8 +1,10 @@
-import json
 import gatey_sdk
 
 
 def print_transport(event):
+    """
+    No gatey_sdk.PrintTransport for formatted print.
+    """
     context = event["exception"]["traceback"][-1]["context"]
     print("---------------------")
     print("Code context sent to server: ")
