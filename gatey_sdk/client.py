@@ -22,7 +22,7 @@ from gatey_sdk.internal.exc import (
 # Components.
 from gatey_sdk.api import Api
 from gatey_sdk.auth import Auth
-from gatey_sdk.transport import build_transport_instance, BaseTransport
+from gatey_sdk.transports import build_transport_instance, BaseTransport
 
 
 class _Client:
@@ -330,7 +330,7 @@ class _Client:
         self._events_buffer_flush_thread = Thread(
             target=self._buffer_flush_thread_target,
             args=(),
-            name="sentry_sdk.events_buffer.flusher",
+            name="gatey_sdk.events_buffer.flusher",
         )
 
         # Mark thread as daemon (which is required for graceful main thread termination) and start.

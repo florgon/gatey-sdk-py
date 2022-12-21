@@ -45,7 +45,7 @@ from gatey_sdk.exceptions import GateyApiError, GateyTransportError
 # Additional API.
 from gatey_sdk.api import Api
 from gatey_sdk.response import Response
-from gatey_sdk.transport import (
+from gatey_sdk.transports import (
     BaseTransport,
     HttpTransport,
     FuncTransport,
