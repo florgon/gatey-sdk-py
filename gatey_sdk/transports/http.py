@@ -1,3 +1,6 @@
+"""
+    HTTP Transport. Sends event to the Gatey Server when event sends.
+"""
 import json
 from typing import Optional, Dict
 from gatey_sdk.transports.base import BaseTransport
@@ -28,10 +31,17 @@ class HttpTransport(BaseTransport):
 
     @BaseTransport.transport_base_sender_wrapper
     def send_event(self, event_dict: Dict) -> None:
+        """
+        Sends event to the Gatey API server.
+        """
         api_params = self._api_params_from_event_dict(event_dict=event_dict)
         self._api_provider.method("event.capture", send_project_auth=True, **api_params)
 
-    def _api_params_from_event_dict(self, event_dict: Dict):
+    @staticmethod
+    def _api_params_from_event_dict(event_dict: Dict[str, str]) -> Dict[str, str]:
+        """
+        Converts event dict to ready for sending API params dict.
+        """
         api_params = {
             "level": event_dict["level"],
         }

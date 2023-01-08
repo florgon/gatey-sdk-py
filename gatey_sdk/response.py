@@ -2,7 +2,7 @@
     Response class.
     Result of all API methods.
     Implements Gatey API response structure (For success).
-    
+
     If API request will raise error, there will be `gatey_sdk.exceptions.GateyApiError`
 """
 

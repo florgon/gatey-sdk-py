@@ -49,6 +49,7 @@ def wrap_in_exception_handler(
 
     def decorator(function: Callable):
         def wrapper(*args, **kwargs):
+            # pylint: disable=inconsistent-return-statements
             # Gets called when `decorated` function get called.
             try:
                 # This will simply return function result if there is no exception.

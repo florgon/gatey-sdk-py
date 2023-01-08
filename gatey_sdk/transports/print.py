@@ -1,3 +1,7 @@
+"""
+    Print transport. Prints event data, used ONLY as test environment.
+"""
+
 import json
 from typing import Callable, Any, Dict
 from gatey_sdk.transports.base import BaseTransport
@@ -30,12 +34,9 @@ class PrintTransport(BaseTransport):
         Handles transport event callback (handle event sending).
         Print event data.
         """
-        dump_data = (
-            self._prepare_event(event_dict) if self._prepare_event else event_dict
-        )
         print(
             json.dumps(
-                dump_data,
+                self._prepare_event(event_dict),
                 indent=self._indent,
                 sort_keys=True,
             )

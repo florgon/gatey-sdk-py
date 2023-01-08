@@ -1,3 +1,7 @@
+"""
+    Void transport. Does nothing, used as test environment.
+"""
+
 from gatey_sdk.transports.base import BaseTransport
 
 
@@ -12,4 +16,3 @@ class VoidTransport(BaseTransport):
         Handles transport event callback (handle event sending).
         Does nothing.
         """
-        pass
