@@ -75,6 +75,7 @@ def wrap_in_exception_handler(
                 # Raise exception again if we expected that.
                 if reraise is True:
                     raise e
+            return
 
         return wrapper
 

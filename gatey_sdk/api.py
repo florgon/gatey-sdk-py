@@ -2,9 +2,9 @@
     API class for working with API (HTTP).
     Sends HTTP requests, handles API methods.
 """
-import requests
-
 from typing import Optional
+
+import requests
 
 from gatey_sdk.auth import Auth
 from gatey_sdk.response import Response
@@ -115,33 +115,6 @@ class Api:
         """
         self._api_server_expected_version = version
 
-    def _process_error_and_raise(self, method_name: str, response: Response) -> None:
-        """
-        Processes error, and if there is any error, raise ApiError exception.
-        """
-        error = response.raw_json().get("error")
-        if error:
-            # If there is an error.
-
-            # Query error fields.
-            error_message = error.get("message")
-            error_code = error.get("code")
-            error_status = error.get("status")
-
-            # If invalid request by validation error, there will be additional error information in "exc" field of the error.
-            if error_code == 3 and "exc" in error:
-                error_message = f"{error_message} Additional exception information: {error.get('exc')}"
-
-            # Raise ApiError exception.
-            message = f"Failed to call API method {method_name}! Error code: {error_code}. Error message: {error_message}"
-            raise GateyApiError(
-                message=message,
-                error_code=error_code,
-                error_message=error_message,
-                error_status=error_status,
-                response=response,
-            )
-
     def do_auth_check(self) -> bool:
         """
         Checks authentication with API.
@@ -168,11 +141,39 @@ class Api:
             if api_error.error_code == 7:
                 raise GateyApiAuthError(
                     "You are entered incorrect project secret (client or server)! Please review your SDK settings! (See previous exception to see more described information)"
-                )
+                ) from api_error
             if api_error.error_code == 8:
                 raise GateyApiAuthError(
                     "You are entered not existing project id! Please review your SDK settings! (See previous exception to see more described information)"
-                )
+                ) from api_error
             raise GateyApiAuthError(
                 "There is unknown error while trying to check auth (do_auth)! (See previous exception to see more described information)"
+            ) from api_error
+
+    @staticmethod
+    def _process_error_and_raise(method_name: str, response: Response) -> None:
+        """
+        Processes error, and if there is any error, raise ApiError exception.
+        """
+        error = response.raw_json().get("error")
+        if error:
+            # If there is an error.
+
+            # Query error fields.
+            error_message = error.get("message")
+            error_code = error.get("code")
+            error_status = error.get("status")
+
+            # If invalid request by validation error, there will be additional error information in "exc" field of the error.
+            if error_code == 3 and "exc" in error:
+                error_message = f"{error_message} Additional exception information: {error.get('exc')}"
+
+            # Raise ApiError exception.
+            message = f"Failed to call API method {method_name}! Error code: {error_code}. Error message: {error_message}"
+            raise GateyApiError(
+                message=message,
+                error_code=error_code,
+                error_message=error_message,
+                error_status=error_status,
+                response=response,
             )

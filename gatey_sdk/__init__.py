@@ -7,7 +7,9 @@
     Florgon Gatey is a error logging service.
     Library provides interface for working with exceptions, catching them,
     Working with message / events and all another analytics stuff,
-    Also there is base API interface, allowing to work with native API, not base gateway end-user API.
+    Also there is base API interface, 
+    allowing to work with native API, 
+    not base gateway end-user API.
 
     Author: Florgon Solutions.
     Gatey website: https://gatey.florgon.space/
@@ -37,7 +39,6 @@ from gatey_sdk.__version__ import (
 
 # Base API.
 from gatey_sdk.client import Client
-from gatey_sdk.response import Response
 
 # Internal exceptions.
 from gatey_sdk.exceptions import GateyApiError, GateyTransportError
