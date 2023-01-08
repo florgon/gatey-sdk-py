@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gatey-sdk"
-version = "0.0.7"
+version = "0.0.8"
 description = "Python client for Gatey (https://gatey.florgon.space)"
 authors = ["Florgon Team and Contributors"]
 license = "MIT"
