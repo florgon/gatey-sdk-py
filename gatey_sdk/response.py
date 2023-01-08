@@ -7,7 +7,7 @@
 """
 
 from typing import Dict, Any, Optional
-from requests import Response
+from requests import Response as _HttpResponse
 
 
 class Response:
@@ -17,13 +17,13 @@ class Response:
 
     # Raw response fields.
     _raw_json: Optional[Dict] = None
-    _raw_response: Optional[Response] = None
+    _raw_response: Optional[_HttpResponse] = None
 
     # API response fields.
     _response_version: Optional[str] = None
     _response_object: Optional[Dict] = None  # `success` response field.
 
-    def __init__(self, http_response: Response):
+    def __init__(self, http_response: _HttpResponse):
         """
         :param http_response: Response object (HTTP).
         """
@@ -33,8 +33,8 @@ class Response:
 
         # Parse raw response once for working later.
         self._raw_json = self._raw_response.json()
-        self._response_object = self._raw_json.get("success")
-        self._response_version = self._raw_json.get("v")
+        self._response_object = self._raw_json.get("success", dict())
+        self._response_version = self._raw_json.get("v", "-")
 
     def get(self, key: str, default: Any = None):
         """
@@ -84,7 +84,7 @@ class Response:
         """
         return self._raw_json
 
-    def raw_response(self) -> Response:
+    def raw_response(self) -> _HttpResponse:
         """
         Returns raw response object.
         WARNING: Do not use this method.
