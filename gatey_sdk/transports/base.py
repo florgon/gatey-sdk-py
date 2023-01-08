@@ -2,14 +2,17 @@
     Base abstract class for all transports.
 """
 
-from typing import Dict, Callable, ParamSpec, Any
+from typing import Dict, Callable, Any, Dict
 from gatey_sdk.exceptions import GateyError
 
+# There is need in typing.ParamSpec which is 3.10 feature,
+# that is not supported in <=3.9, need better way to type hint decorated method.
 
-P = ParamSpec("P")
 
-
-def _transport_base_sender_wrapper(func: Callable[P, Any]) -> Callable[P, bool]:
+# Above public field because of requirements below.
+def _transport_base_sender_wrapper(
+    func: Callable[[Dict], Any]
+) -> Callable[[Dict], bool]:
     """
     Wrapper for transport send event method that converts result to success state (boolean).
     """
@@ -48,7 +51,9 @@ class BaseTransport:
         raise NotImplementedError()
 
     @staticmethod
-    def transport_base_sender_wrapper(func: Callable[P, Any]) -> Callable[P, bool]:
+    def transport_base_sender_wrapper(
+        func: Callable[[Dict], Any]
+    ) -> Callable[[Dict], bool]:
         """
         Wrapper for transports send event methods that converts result to success state.
         """
