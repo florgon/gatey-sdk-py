@@ -175,7 +175,7 @@ class _Client:
             exception=exception,
             ignored_exceptions=ignored_exceptions,
             skip_global_handler_on_ignore=skip_global_handler_on_ignore,
-            on_catch_exception=self.on_catch_exception_hook,
+            on_catch_exception=self._on_catch_exception_hook,
         )
 
     def capture_event(
