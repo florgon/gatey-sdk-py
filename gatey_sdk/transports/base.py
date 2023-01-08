@@ -48,7 +48,7 @@ class BaseTransport:
         raise NotImplementedError()
 
     @staticmethod
-    def transport_base_sender_wrapper(func):
+    def transport_base_sender_wrapper(func: Callable[P, Any]) -> Callable[P, bool]:
         """
         Wrapper for transports send event methods that converts result to success state.
         """
