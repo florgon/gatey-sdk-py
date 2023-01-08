@@ -3,7 +3,7 @@
 """
 
 import json
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, Optional, Union
 from gatey_sdk.transports.base import BaseTransport
 
 
@@ -14,9 +14,9 @@ class PrintTransport(BaseTransport):
 
     def __init__(
         self,
-        indent: int | str | None = 2,
-        prepare_event: Callable[[Dict], Dict] | None = None,
-        print_function: Callable[[Dict], Any] | None = None,
+        indent: Optional[Union[int, str]] = 2,
+        prepare_event: Optional[Callable[[Dict], Dict]] = None,
+        print_function: Optional[Callable[[Dict], Any]] = None,
     ):
         """
         :param indent: Indent for json convertion

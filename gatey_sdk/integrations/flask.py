@@ -3,7 +3,7 @@
 """
 
 from typing import Callable, Dict, Any, Optional
-from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers import Request
 from flask import abort
 from gatey_sdk.client import Client
 
@@ -30,7 +30,7 @@ class GateyFlaskMiddleware:
     def __init__(
         self,
         app,
-        client: Client | None = None,
+        client: Optional[Client] = None,
         *,
         capture_requests_info: bool = False,
         client_getter: Optional[ClientGetterCallable] = None,
@@ -109,7 +109,8 @@ class GateyFlaskMiddleware:
                 self.post_capture_hook(self, *app_args)
             abort(500)
 
-    def _get_request_tags_from_environ(self, environ: Dict) -> Dict[str, str]:
+    @staticmethod
+    def _get_request_tags_from_environ(environ: Dict) -> Dict[str, str]:
         """
         Returns tags for request from request environ.
         """
@@ -148,6 +149,7 @@ class GateyFlaskMiddleware:
         """
         return self.gatey_client
 
+    @staticmethod
     def _default_void_hook(*_) -> None:
         """
         Default hook for pre/post capture, just does nohing.

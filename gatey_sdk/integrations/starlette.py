@@ -35,7 +35,7 @@ class GateyStarletteMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        client: Client | None = None,
+        client: Optional[Client] = None,
         *,
         capture_requests_info: bool = False,
         client_getter: Optional[ClientGetterCallable] = None,
