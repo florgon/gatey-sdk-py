@@ -23,6 +23,7 @@ class GateyFlaskMiddleware:
     capture_exception_options: Dict[str, Any] = {"include_default_tags": True}
     pre_capture_hook: HookCallable
     post_capture_hook: HookCallable
+    on_request_hook: HookCallable
     client_getter: ClientGetterCallable
     capture_requests_info: bool = False
     capture_requests_info_additional_tags: Dict[str, str] = dict()
@@ -73,7 +74,7 @@ class GateyFlaskMiddleware:
                 "Gatey client is invalid! Please review `client` param or review your client getter!"
             )
 
-    def __call__(self, environ: Dict, start_response: Callable) -> None:
+    def __call__(self, environ: Dict, start_response: Callable) -> Any:
         """
         Middleware itself (handle request).
         """

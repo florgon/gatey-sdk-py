@@ -27,6 +27,7 @@ class GateyStarletteMiddleware:
     capture_exception_options: Dict[str, Any] = {"include_default_tags": True}
     pre_capture_hook: HookCallable
     post_capture_hook: HookCallable
+    on_request_hook: HookCallable
     client_getter: ClientGetterCallable
     capture_reraise_after: bool = True
     capture_requests_info: bool = False
@@ -167,6 +168,7 @@ class GateyStarletteMiddleware:
         """
         return self.gatey_client
 
+    @staticmethod
     async def _default_void_hook(*_) -> None:
         """
         Default hook for pre/post capture, just does nohing.

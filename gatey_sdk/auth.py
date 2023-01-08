@@ -75,7 +75,7 @@ class Auth:
         return f"{oauth_screen_url}?client_id={client_id}&redirect_uri={redirect_uri}&scope={scope}&response_type={response_type}"
 
     @staticmethod
-    def parse_access_token_from_redirect_uri(redirect_uri: str) -> str | None:
+    def parse_access_token_from_redirect_uri(redirect_uri: str) -> Optional[str]:
         """
         Returns token from redirect uri (OAuth) or None if not found there.
         """
