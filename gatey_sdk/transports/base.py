@@ -2,7 +2,7 @@
     Base abstract class for all transports.
 """
 
-from typing import Dict, Callable, Any, Dict
+from typing import Dict, Callable, Any
 from gatey_sdk.exceptions import GateyError
 
 # There is need in typing.ParamSpec which is 3.10 feature,

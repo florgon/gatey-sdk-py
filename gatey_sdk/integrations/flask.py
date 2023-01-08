@@ -1,3 +1,4 @@
+# pylint: disable=inconsistent-return-statements
 """
     Flask integration(s).
 """
@@ -81,7 +82,6 @@ class GateyFlaskMiddleware:
         return self._execute_app_wrapped(environ, start_response)
 
     def _execute_app_wrapped(self, environ: Dict, start_response: Callable) -> Any:
-        # pylint: disable=inconsistent-return-statements
         """
         Executes app wrapped with middleware.
         """
@@ -110,8 +110,6 @@ class GateyFlaskMiddleware:
 
                 self.post_capture_hook(self, *app_args)
             abort(500)
-        finally:
-            return
 
     @staticmethod
     def _get_request_tags_from_environ(environ: Dict) -> Dict[str, str]:
