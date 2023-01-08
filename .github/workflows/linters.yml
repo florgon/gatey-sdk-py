@@ -1,0 +1,34 @@
+name: Linters (Pylint, MyPy)
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Linters
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install linters
+        run: pip install --upgrade pip && pip install pylint==v3.0.0a3 mypy==v0.902
+        working-directory: "gatey_sdk/"
+      - name: PyLint lint.
+        run: pylint $(git ls-files '*.py')
+        working-directory: "gatey_sdk/"
+      - name: All PyLint warning.
+        run: pylint $(git ls-files '*.py') || true
+        working-directory: "gatey_sdk/"
+      - name: MyPy type check.
+        working-directory: "gatey_sdk/"
+        run: mypy $(git ls-files '*.py') || true
