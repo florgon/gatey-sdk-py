@@ -52,7 +52,7 @@ def build_transport_instance(
     if callable(transport_argument):
         # Passed callable (function) as transport.
         # Should be Function transport, as it handles raw function call.
-        return FuncTransport(function=transport_argument)
+        return FuncTransport(func=transport_argument)
 
     # Unable to instantiate transport instance.
     raise GateyTransportImproperlyConfiguredError(
