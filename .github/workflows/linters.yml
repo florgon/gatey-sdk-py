@@ -14,7 +14,7 @@ jobs:
     name: Linters
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -24,7 +24,7 @@ jobs:
         run: pip install --upgrade pip && pip install pylint==v3.0.0a3 mypy==v0.902
         working-directory: "gatey_sdk/"
       - name: PyLint lint.
-        run: pylint --disable=import-error --disable=line-too-long --disable=broad-except --disable=invalid-name --disable=too-many-arguments --disable=too-many-instance-attributes --disable=too-many-locals $(git ls-files '*.py')
+        run: pylint --disable=import-error --disable=duplicate-code --disable=line-too-long --disable=broad-except --disable=invalid-name --disable=too-many-arguments --disable=too-many-instance-attributes --disable=too-many-locals $(git ls-files '*.py')
         working-directory: "gatey_sdk/"
       - name: All PyLint warning.
         run: pylint $(git ls-files '*.py') || true

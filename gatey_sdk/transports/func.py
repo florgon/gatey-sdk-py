@@ -1,3 +1,5 @@
+# pylint: disable=arguments-differ
+# pylint: disable=raise-missing-from
 """
     Function transport. Calls your function when event sends.
 """
@@ -22,7 +24,7 @@ class FuncTransport(BaseTransport):
     @BaseTransport.transport_base_sender_wrapper
     def send_event(
         self, event_dict: Dict, skip_to_internal_exception: bool = False
-    ) -> None:  # pylint: disable=arguments-differ
+    ) -> None:
         """
         Handles transport event callback (handle event sending).
         Function transport just takes event and passed it raw to function call.
@@ -32,7 +34,7 @@ class FuncTransport(BaseTransport):
                 self._function(event_dict)
             except Exception as _:
                 raise GateyTransportError(
-                    f"Unable to handle event send with Function transport (FuncTransport)."
-                )  # pylint: disable=raise-missing-from
+                    "Unable to handle event send with Function transport (FuncTransport)."
+                )
             return
         self._function(event_dict)

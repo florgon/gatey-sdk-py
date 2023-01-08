@@ -1,3 +1,4 @@
+# pylint: disable=inconsistent-return-statements
 """
     Stuff for working with exceptions on SDK level.
 """

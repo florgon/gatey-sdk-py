@@ -2,13 +2,14 @@
     Transports for Client.
 """
 
+from typing import Any, Union, Optional
+
 from gatey_sdk.transports.base import BaseTransport
 from gatey_sdk.transports.http import HttpTransport
 from gatey_sdk.transports.func import FuncTransport
 from gatey_sdk.transports.void import VoidTransport
 from gatey_sdk.transports.print import PrintTransport
 
-from typing import Any, Union, Optional
 from gatey_sdk.exceptions import (
     GateyTransportImproperlyConfiguredError,
 )
