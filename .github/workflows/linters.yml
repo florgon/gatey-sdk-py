@@ -24,7 +24,7 @@ jobs:
         run: pip install --upgrade pip && pip install pylint==v3.0.0a3 mypy==v0.902
         working-directory: "gatey_sdk/"
       - name: PyLint lint.
-        run: pylint --disable=import-error --disable=too-few-public-methods --disable=duplicate-code --disable=line-too-long --disable=broad-except --disable=invalid-name --disable=too-many-arguments --disable=too-many-instance-attributes --disable=too-many-locals $(git ls-files '*.py')
+        run: pylint --disable=import-error --disable=fixme --disable=too-few-public-methods --disable=duplicate-code --disable=line-too-long --disable=broad-except --disable=invalid-name --disable=too-many-arguments --disable=too-many-instance-attributes --disable=too-many-locals $(git ls-files '*.py')
         working-directory: "gatey_sdk/"
       - name: All PyLint warning.
         run: pylint $(git ls-files '*.py') || true

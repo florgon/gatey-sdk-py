@@ -24,3 +24,7 @@ EXC_ATTR_IS_INTERNAL = "gatey_is_internal"
 
 # Runtime name for runtime event data.
 RUNTIME_NAME = "Python"
+
+# Events buffer defaults.
+DEFAULT_EVENTS_BUFFER_FLUSH_EVERY = 10.0
+EVENTS_BUFFER_FLUSHER_THREAD_NAME = "gatey_sdk.events_buffer.flusher"

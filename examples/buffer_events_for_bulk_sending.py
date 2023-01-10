@@ -14,16 +14,16 @@ client.capture_message("info", "hi!")
 client.capture_message("info", "hi!")
 
 # Will not capture any.
-client.buffer_events_max_capacity = 0
+client.events_buffer.max_capacity = 0
 client.capture_message("info", "hi!")
 client.capture_message("info", "hi!")
-client.force_drop_buffered_events()
-client.bulk_send_buffered_events()
-client.buffer_events_max_capacity = 2
+client.events_buffer.clear_events()  # Or `legacy` way as `client.force_drop_buffered_events()`
+client.events_buffer.send_all()  # Or `legacy` way as `client.bulk_send_buffered_events()`
+client.events_buffer.max_capacity = 2
 
 # Will send requests with second (send) call.
 client.capture_message("info", "hi!")
-client.bulk_send_buffered_events()
+client.events_buffer.send_all()  # Or `legacy` way as `client.bulk_send_buffered_events()`
 
 # Will send request after script end.
 client.capture_message("info", "hi!")
