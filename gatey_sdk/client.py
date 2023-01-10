@@ -49,6 +49,9 @@ class _Client:
 
     # Settings.
 
+    # Any kwargs passed to the init constructor.
+    kwargs_settings: Dict[str, Any] = dict()
+
     # If true, will send locals(), globals() variables,
     # alongside with event data.
     exceptions_capture_vars = True
@@ -91,6 +94,8 @@ class _Client:
         server_secret: Optional[str] = None,
         client_secret: Optional[str] = None,
         check_api_auth_on_init: bool = True,
+        # Other params.
+        **kwargs_settings,
     ):
         """
         :param transport: BaseTransport layer for sending event to the server / whatever else.
@@ -117,7 +122,9 @@ class _Client:
             server_secret=server_secret,
             client_secret=client_secret,
         )
-        self.api = Api(auth=self.auth)
+        self.api = Api(
+            auth=self.auth, **kwargs_settings.get("api_instance_kwargs", dict())
+        )
         self.transport = build_transport_instance(
             transport_argument=transport, api=self.api, auth=self.auth
         )
@@ -131,10 +138,11 @@ class _Client:
         self.include_runtime_info = include_runtime_info
         self.include_platform_info = include_platform_info
         self.include_sdk_info = include_sdk_info
+        self.kwargs_settings = kwargs_settings.copy()
 
         # Tags like platform, sdk, etc.
         self.default_tags_context = self._build_default_tags_context(
-            foreign_tags=dict()
+            foreign_tags=kwargs_settings.get("default_tags_context", dict())
         )
 
         # Check API auth if requested and should.

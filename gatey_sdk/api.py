@@ -2,7 +2,7 @@
     API class for working with API (HTTP).
     Sends HTTP requests, handles API methods.
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 
 import requests
 
@@ -34,15 +34,25 @@ class Api:
     # `Auth` instance that provides authentication fields.
     _auth_provider: Auth = None
 
-    def __init__(self, auth: Optional[Auth] = None):
+    # Kwargs for HTTP request call.
+    _http_request_kwargs: Dict[str, Any] = dict()
+
+    def __init__(
+        self,
+        auth: Optional[Auth] = None,
+        *,
+        http_request_kwargs: Optional[Dict[str, Any]] = None,
+    ):
         """
         :param auth: Auth provider as the `Auth` instance.
+        :param http_request_kwargs: Kwargs that will be passed to the HTTP requests call.
         """
         if auth and not isinstance(auth, Auth):
             raise TypeError(
                 "Auth must be an instance of `Auth`! You may not pass auth as it will be initialise blank internally in `Api`."
             )
         self._auth_provider = auth if auth else Auth()
+        self._http_request_kwargs = http_request_kwargs
 
     def method(
         self,
@@ -82,6 +92,7 @@ class Api:
             url=api_server_method_url,
             params=http_params,
             timeout=self._api_server_requests_timeout,
+            **self._http_request_kwargs,
         )
 
         # Wrap HTTP response in to own Response object.
