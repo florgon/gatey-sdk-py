@@ -1,5 +1,5 @@
 """
-    Events `buffer` class, that does storing events (as raw data) 
+    Events `buffer` class, that does storing events (as raw data)
     and handles them passing to the transport.
 
     Something like `proxy` that can just immediatly send event directly to the transport
