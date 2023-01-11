@@ -149,7 +149,13 @@ class Api:
                 send_project_auth=True,
             )
         except GateyApiError as api_error:
+
             if api_error.error_code == 7:
+                if "please use server secret" in api_error.error_message.lower():
+                    # TODO: Checkout backend rework for that case.
+                    raise GateyApiAuthError(
+                        "Project settings restricts using client secret, please use server secret instead of client, or ask to change project settings."
+                    ) from api_error
                 raise GateyApiAuthError(
                     "You are entered incorrect project secret (client or server)! Please review your SDK settings! (See previous exception to see more described information)"
                 ) from api_error

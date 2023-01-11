@@ -16,6 +16,7 @@ from gatey_sdk.internal.exc import (
     wrap_in_exception_handler,
     register_system_exception_hook,
     event_dict_from_exception,
+    get_current_exception,
 )
 
 
@@ -247,7 +248,7 @@ class _Client:
 
     def capture_exception(
         self,
-        exception: BaseException,
+        exception: Optional[BaseException],
         *,
         level: str = "error",
         tags: Optional[Dict[str, str]] = None,
@@ -260,6 +261,16 @@ class _Client:
         :param tags: Dictionary of the tags (string-string).
         :param include_default_tags: If false, will force to not pass default tags context of the client to the event.
         """
+        if exception is None:
+            # If exception is not passed,
+            # get local current exception.
+            exception = get_current_exception()
+
+        if not isinstance(exception, BaseException):
+            raise TypeError(
+                "Expected `exception` to be an `BaseException`, please review your `capture_exception` call, or explicitly pass exception."
+            )
+
         exception_dict = event_dict_from_exception(
             exception=exception,
             skip_vars=not self.exceptions_capture_vars,

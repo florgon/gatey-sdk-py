@@ -15,6 +15,7 @@ from gatey_sdk.internal.exc import (
     wrap_in_exception_handler,
     register_system_exception_hook,
     event_dict_from_exception,
+    get_current_exception,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "wrap_in_exception_handler",
     "register_system_exception_hook",
     "event_dict_from_exception",
+    "get_current_exception",
 ]

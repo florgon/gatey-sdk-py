@@ -152,6 +152,15 @@ def event_dict_from_exception(
     return event_dict
 
 
+def get_current_exception() -> BaseException:
+    """
+    Returns current local exception from scope.
+    :returns BaseException: local exception info.
+    """
+    local_exception_info = sys.exc_info()
+    return local_exception_info[1]
+
+
 def _get_exception_type_name(exception: BaseException) -> str:
     """
     Returns exception type ("BaseException", "ValueError").
