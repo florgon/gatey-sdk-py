@@ -12,3 +12,11 @@ try:
 except Exception:
     # Same as above but gets from current.
     client.capture_exception()
+
+
+@client.catch(reraise=False)
+def my_func():
+    raise ValueError("Message text from wrapped function")
+
+
+my_func()

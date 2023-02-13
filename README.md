@@ -36,7 +36,7 @@ client = gatey_sdk.Client(
 client.capture_message("Hello Python Gatey SDK!", level="DEBUG")
 
 # Will capture exception.
-@client.catch
+@client.catch()
 def f():
     raise ValueError
 
