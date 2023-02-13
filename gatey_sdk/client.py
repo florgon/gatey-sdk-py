@@ -103,7 +103,8 @@ class _Client:
             client_secret=client_secret,
         )
         self.api = Api(
-            auth=self.auth, **kwargs_settings.get("api_instance_kwargs", dict())
+            auth=self.auth,
+            http_request_kwargs=kwargs_settings.get("api_instance_kwargs", dict()),
         )
         self.transport = build_transport_instance(
             transport_argument=transport, api=self.api, auth=self.auth
