@@ -1,7 +1,7 @@
 """
     Custom exceptions that may occur while working with SDK.
 """
-
+from requests import Response as _HttpResponse
 from gatey_sdk.response import Response
 from gatey_sdk.consts import EXC_ATTR_IS_INTERNAL
 
@@ -12,7 +12,22 @@ class GateyError(Exception):
     """
 
 
-class GateyApiError(GateyError):
+class GateyHttpError(GateyError):
+    """
+    Raised when there is any error with HTTP call.
+    """
+
+    def __init__(self, message: str, raw_response: _HttpResponse):
+        """
+        :param message: Message of the exception.
+        :param raw_response: Raw HTTP response.
+        """
+        super().__init__(message)
+        self.raw_response = raw_response
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)
+
+
+class GateyApiError(GateyHttpError):
     """
     Raised when there is any error with response.
     Means API return error (not success).
@@ -25,6 +40,7 @@ class GateyApiError(GateyError):
         error_message: str,
         error_status: int,
         response: Response,
+        raw_response: _HttpResponse,
     ):
         """
         :param message: Message of the exception.
@@ -33,11 +49,24 @@ class GateyApiError(GateyError):
         :param error_status: API error status (HTTP status, from the API `status` error field).
         :param response: API response.
         """
-        super().__init__(message)
+        super().__init__(message, raw_response=raw_response)
         self.error_code = error_code
         self.error_message = error_message
         self.error_status = error_status
         self.response = response
+        setattr(self, EXC_ATTR_IS_INTERNAL, True)
+
+
+class GateyApiResponseError(GateyHttpError):
+    """
+    Raised when there is any error in the procesing response fro the API.
+    """
+
+    def __init__(self, message: str, raw_response: _HttpResponse):
+        """
+        :param message: Message of the exception.
+        """
+        super().__init__(message, raw_response)
         setattr(self, EXC_ATTR_IS_INTERNAL, True)
 
 

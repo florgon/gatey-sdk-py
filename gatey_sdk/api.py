@@ -8,7 +8,7 @@ import requests
 
 from gatey_sdk.auth import Auth
 from gatey_sdk.response import Response
-from gatey_sdk.exceptions import GateyApiError, GateyApiAuthError
+from gatey_sdk.exceptions import GateyApiError, GateyApiAuthError, GateyApiResponseError
 from gatey_sdk.utils import remove_trailing_slash
 from gatey_sdk.consts import (
     API_DEFAULT_SERVER_PROVIDER_URL,
@@ -96,10 +96,18 @@ class Api:
         )
 
         # Wrap HTTP response in to own Response object.
-        response = Response(http_response=http_response)
+        try:
+            response = Response(http_response=http_response)
+        except requests.exceptions.JSONDecodeError:
+            raise GateyApiResponseError(
+                f"Failed to parse JSON response for response wrapper (Mostly due to server-side error!). Status code: {http_response.status_code}",
+                raw_response=http_response,
+            )
 
         # Raise exception if there is any error returned with Api.
-        self._process_error_and_raise(method_name=name, response=response)
+        self._process_error_and_raise(
+            method_name=name, response=response, raw_response=http_response
+        )
 
         return response
 
@@ -149,7 +157,6 @@ class Api:
                 send_project_auth=True,
             )
         except GateyApiError as api_error:
-
             if api_error.error_code == 7:
                 if "please use server secret" in api_error.error_message.lower():
                     # TODO: Checkout backend rework for that case.
@@ -168,7 +175,9 @@ class Api:
             ) from api_error
 
     @staticmethod
-    def _process_error_and_raise(method_name: str, response: Response) -> None:
+    def _process_error_and_raise(
+        method_name: str, response: Response, raw_response: requests.Response
+    ) -> None:
         """
         Processes error, and if there is any error, raise ApiError exception.
         """
@@ -193,4 +202,5 @@ class Api:
                 error_message=error_message,
                 error_status=error_status,
                 response=response,
+                raw_response=raw_response,
             )

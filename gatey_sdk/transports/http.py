@@ -6,7 +6,9 @@ from typing import Optional, Dict
 from gatey_sdk.transports.base import BaseTransport
 from gatey_sdk.api import Api
 from gatey_sdk.auth import Auth
-from gatey_sdk.exceptions import GateyTransportImproperlyConfiguredError
+from gatey_sdk.exceptions import (
+    GateyTransportImproperlyConfiguredError,
+)
 
 
 class HttpTransport(BaseTransport):
