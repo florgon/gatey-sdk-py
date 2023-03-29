@@ -66,8 +66,8 @@ class Auth:
         client_id: int = 1,
         scope: str = "gatey",
         response_type: str = "token",
-        redirect_uri: str = "https://florgon.space/oauth/blank",
-        oauth_screen_url: str = "https://florgon.space/oauth/authorize",
+        redirect_uri: str = "https://florgon.com/oauth/blank",
+        oauth_screen_url: str = "https://florgon.com/oauth/authorize",
     ) -> str:
         """
         Returns url for OAuth user login manually.

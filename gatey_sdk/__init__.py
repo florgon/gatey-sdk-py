@@ -12,48 +12,48 @@
     not base gateway end-user API.
 
     Author: Florgon Solutions.
-    Gatey website: https://gatey.florgon.space/
-    Gatey API endpoint: https://api.florgon.space/gatey/
+    Gatey website: https://gatey.florgon.com/
+    Gatey API endpoint: https://api.florgon.com/gatey/
     Gatey developer documentation: https://gatey-sdk-py.readthedocs.io/
 
     If you have any questions please reach out us at:
-    - support@florgon.space
+    - support@florgon.com
 
     Main SDK maintainer:
     - Kirill Zhosul (@kirillzhosul)
-    - kirillzhosul@florgon.space
+    - kirillzhosul@florgon.com
     - https://github.com/kirillzhosul
 """
 
-# Library specific information.
-from gatey_sdk.__version__ import (
-    __author__,
-    __author_email__,
-    __copyright__,
-    __description__,
-    __license__,
-    __title__,
-    __url__,
-    __version__,
+from gatey_sdk.transports import (
+    VoidTransport,
+    PrintTransport,
+    HttpTransport,
+    FuncTransport,
+    BaseTransport,
 )
+from gatey_sdk.response import Response
+
+# Internal exceptions.
+from gatey_sdk.exceptions import GateyTransportError, GateyApiError
 
 # Base API.
 from gatey_sdk.client import Client
 
-# Internal exceptions.
-from gatey_sdk.exceptions import GateyApiError, GateyTransportError
-
 # Additional API.
 from gatey_sdk.api import Api
-from gatey_sdk.response import Response
-from gatey_sdk.transports import (
-    BaseTransport,
-    HttpTransport,
-    FuncTransport,
-    VoidTransport,
-    PrintTransport,
-)
 
+# Library specific information.
+from gatey_sdk.__version__ import (
+    __version__,
+    __url__,
+    __title__,
+    __license__,
+    __description__,
+    __copyright__,
+    __author_email__,
+    __author__,
+)
 
 __all__ = [
     "Client",

@@ -1,6 +1,6 @@
 # Florgon Gatey SDK for Python (Official).
 
-## This is the official Python SDK for [Florgon Gatey](https://gatey.florgon.space)
+## This is the official Python SDK for [Florgon Gatey](https://gatey.florgon.com)
 
 ## Getting Started
 
@@ -69,7 +69,7 @@ raise ValueError
 ## Documentation.
 
 [ReadTheDocs](https://gatey-sdk-py.readthedocs.io/) \
-[Gatey Documentation](https://florgon.space/dev/gatey)
+[Gatey Documentation](https://florgon.com/dev/gatey)
 
 ## License
 
