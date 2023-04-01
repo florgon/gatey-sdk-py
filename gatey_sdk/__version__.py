@@ -5,7 +5,7 @@
 __title__ = "gatey-sdk"
 __description__ = "Python client for Gatey (https://gatey.florgon.com)"
 __url__ = "https://github.com/florgon/gatey-sdk-py"
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 __author__ = "Florgon Team and Contributors"
 __author_email__ = "support@florgon.com"
 __license__ = "MIT"

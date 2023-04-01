@@ -64,7 +64,7 @@ raise ValueError
 
 - [Starlette (FastAPI) integration](/gatey_sdk/integrations/starlette.py)
 - [Flask integration](/gatey_sdk/integrations/flask.py)
-- Django (TBD)
+- [Django integration](/gatey_sdk/integrations/django.py)
 
 ## Documentation.
 

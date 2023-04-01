@@ -2,11 +2,10 @@
     Starlette integration(s).
 """
 
-from typing import Callable, Dict, Any, Optional, Awaitable
+from typing import Optional, Dict, Callable, Awaitable, Any
 
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import Send, Scope, Receive, ASGIApp
 from starlette.datastructures import Headers
-
 from gatey_sdk.client import Client
 
 # Type aliases for callables.
@@ -136,6 +135,7 @@ class GateyStarletteMiddleware:
             scope.get("method", "UNKNOWN"),
         )
         return {
+            "gatey.sdk.integration_type": "Starlette",
             "query": query,
             "path": path,
             "method": method,

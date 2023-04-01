@@ -3,10 +3,11 @@
     Flask integration(s).
 """
 
-from typing import Callable, Dict, Any, Optional
+from typing import Optional, Dict, Callable, Any
+
 from werkzeug.wrappers import Request
-from flask import abort
 from gatey_sdk.client import Client
+from flask import abort
 
 # Type aliases for callables.
 HookCallable = Callable[["GateyFlaskMiddleware", Dict, Callable], None]
@@ -14,7 +15,7 @@ ClientGetterCallable = Callable[[], Client]
 
 
 class GateyFlaskMiddleware:
-    """Gatey SDK Starlette middleware."""
+    """Gatey SDK Flask middleware."""
 
     # Requirements.
     flask_app: Callable[[Dict, Callable], Any]
@@ -124,6 +125,7 @@ class GateyFlaskMiddleware:
             "method": request.method,
             "client_host": request.remote_addr,
             "server_host": ":".join(map(str, request.server)),
+            "gatey.sdk.integration_type": "Flask",
         }
 
     def _capture_request_info(self, environ: Dict) -> None:
