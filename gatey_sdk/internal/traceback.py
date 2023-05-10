@@ -2,8 +2,9 @@
     Stuff to work with tracebacks.
 """
 
-from typing import Dict, List
-from types import TracebackType
+from typing import List, Dict
+from types import TracebackType, FrameType
+
 from gatey_sdk.internal.source import get_context_lines_from_source_code
 
 
@@ -70,8 +71,9 @@ def get_variables_from_traceback(
     traceback_variables_globals = {}
 
     if traceback and not _always_skip:
-        traceback_variables_locals = traceback.tb_frame.f_locals
-        traceback_variables_globals = traceback.tb_frame.f_globals
+        last_frame = _traceback_query_tail_frame(traceback)
+        traceback_variables_locals = last_frame.f_locals
+        traceback_variables_globals = last_frame.f_globals
 
     # Stringify variable values.
     traceback_variables_locals = {
@@ -85,3 +87,14 @@ def get_variables_from_traceback(
         "locals": traceback_variables_locals,
         "globals": traceback_variables_globals,
     }
+
+
+def _traceback_query_tail_frame(traceback: TracebackType) -> FrameType:
+    """
+    Returns last frame of the frame (tail).
+    """
+    tail_frame = traceback.tb_frame
+    while traceback is not None:
+        tail_frame = traceback.tb_frame
+        traceback = traceback.tb_next
+    return tail_frame
