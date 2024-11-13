@@ -1,20 +1,18 @@
 # pylint: disable=inconsistent-return-statements
 """
-    Django integration(s).
+Django integration(s).
 """
 
+from typing import Any, Callable, Dict
 
-from typing import Dict, Callable, Any
+from django.conf import settings
+from django.http import HttpRequest
 
 from gatey_sdk.client import Client
-from django.http import HttpRequest
-from django.conf import settings
 
 # Type aliases for callables.
 HookCallable = Callable[["GateyDjangoMiddleware", HttpRequest, Callable], None]
-CaptureHookCallable = Callable[
-    ["GateyDjangoMiddleware", HttpRequest, BaseException], None
-]
+CaptureHookCallable = Callable[["GateyDjangoMiddleware", HttpRequest, BaseException], None]
 ClientGetterCallable = Callable[[], Client]
 
 
@@ -38,13 +36,9 @@ class GateyDjangoMiddleware:
         # Django middleware getter.
         self.get_response = get_response
 
-        self.gatey_client = getattr(
-            settings, "GATEY_CLIENT", None
-        )  # Redefined below by `client_getter`.
+        self.gatey_client = getattr(settings, "GATEY_CLIENT", None)  # Redefined below by `client_getter`.
 
-        self.capture_requests_info = getattr(
-            settings, "GATEY_CAPTURE_REQUESTS_INFO", None
-        )
+        self.capture_requests_info = getattr(settings, "GATEY_CAPTURE_REQUESTS_INFO", None)
 
         self.capture_exception_options = getattr(
             settings, "GATEY_CAPTURE_EXCEPTION_OPTIONS", self.capture_exception_options
@@ -54,30 +48,20 @@ class GateyDjangoMiddleware:
             settings, "GATEY_CAPTURE_REQUESTS_INFO_ADDITIONAL_TAGS", dict()
         )
 
-        self.client_getter = getattr(
-            settings, "GATEY_CLIENT_GETTER", self._default_client_getter
-        )
+        self.client_getter = getattr(settings, "GATEY_CLIENT_GETTER", self._default_client_getter)
 
         # Hooks.
         hooks = {
-            "pre_capture_hook": getattr(
-                settings, "GATEY_PRE_CAPTURE_HOOK", self._default_void_hook
-            ),
-            "post_capture_hook": getattr(
-                settings, "GATEY_POST_CAPTURE_HOOK", self._default_void_hook
-            ),
-            "on_request_hook": getattr(
-                settings, "GATEY_ON_REQUEST_HOOK", self._default_void_hook
-            ),
+            "pre_capture_hook": getattr(settings, "GATEY_PRE_CAPTURE_HOOK", self._default_void_hook),
+            "post_capture_hook": getattr(settings, "GATEY_POST_CAPTURE_HOOK", self._default_void_hook),
+            "on_request_hook": getattr(settings, "GATEY_ON_REQUEST_HOOK", self._default_void_hook),
         }
         for name, hook in hooks.items():
             setattr(self, name, hook)
 
         self.gatey_client = self.client_getter()
         if not isinstance(self.gatey_client, Client):
-            raise ValueError(
-                "Gatey client is invalid! Please review `client` param or review your client getter!"
-            )
+            raise ValueError("Gatey client is invalid! Please review `client` param or review your client getter!")
 
     def __call__(self, request: HttpRequest):
         """
@@ -92,20 +76,18 @@ class GateyDjangoMiddleware:
 
         return self.get_response(request)
 
-    def process_exception(self, request, exception):
+    def process_exception(self, request: HttpRequest, exception: BaseException):
         """
         Process exception by capturing it via Gatey Client.
         """
 
         client = self.client_getter()
-        if client and isinstance(client, Client):
+        if client and isinstance(client, Client):  # type: ignore
             self.pre_capture_hook(self, request, exception)
 
             capture_options = self.capture_exception_options.copy()
             if "tags" not in capture_options:
-                capture_options["tags"] = self._get_request_tags_from_request(
-                    request=request
-                )
+                capture_options["tags"] = self._get_request_tags_from_request(request=request)
 
             client.capture_exception(exception, **capture_options)
 
@@ -119,24 +101,23 @@ class GateyDjangoMiddleware:
         """
         return {
             "gatey.sdk.integration_type": "Django",
-            "method": request.method,
+            "method": request.method or "",
             "scheme": request.scheme,
             "port": request.get_port(),
             "path": request.path,
             "full_path": request.get_full_path(),
             "server_host": request.get_host(),
-            "client_host": request.META.get("REMOTE_ADDR"),
-            "query": request.META["QUERY_STRING"],
-            "server_proto": request.META["SERVER_PROTOCOL"],
-            "server_soft": request.META["SERVER_SOFTWARE"],
-            "content_type": request.META["CONTENT_TYPE"],
-            "http_upgrade_insecure_requests": request.META[
-                "HTTP_UPGRADE_INSECURE_REQUESTS"
-            ],
-            "http_ua_platform": request.META["HTTP_SEC_CH_UA_PLATFORM"],
-            "http_ua_mobile": request.META["HTTP_SEC_CH_UA_MOBILE"],
-            "http_connection": request.META["HTTP_CONNECTION"],
+            **GateyDjangoMiddleware._unpack_request_meta_tags(request),
         }
+
+    @staticmethod
+    def _unpack_request_meta_tags(request: HttpRequest) -> Dict[str, str]:
+        unpacked: Dict[str, str] = {}
+        for k, v in request.META.values():
+            if not isinstance(v, (str, int)):
+                continue
+            unpacked[f"django.request.meta.{k}"] = str(v)
+        return unpacked
 
     def _capture_request_info(self, request: HttpRequest) -> None:
         """
@@ -165,7 +146,5 @@ class GateyDjangoMiddleware:
 
     @staticmethod
     def _default_void_hook(*_) -> None:
-        """
-        Default hook for pre/post capture, just does nohing.
-        """
-        return None
+        """Default hook for pre/post capture, just does nothing."""
+        return
